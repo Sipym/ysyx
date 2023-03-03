@@ -1,7 +1,7 @@
 VERILATOR = verilator
-VERILATOR_FLAG = -Wall --cc --exe --build --trace
-VSRC = ./vsrc/example.v
-CSRC = ./csrc/main.cpp
+VERILATOR_FLAG = -Wall --cc --exe --build --trace --timing
+VSRC = ./vsrc/top.v
+CSRC = ./csrc/sim_main.cpp
 
 
 all:
