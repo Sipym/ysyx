@@ -28,7 +28,7 @@ const char *regs[] = {
 void isa_reg_display() {
     u_int64_t reg_Num = sizeof(regs)/sizeof(regs[0]);
     for ( int i = 0; i < reg_Num; i++) {
-        printf("reg%d = %c\n",i,*(regs[i]));
+        printf("reg%d = %d\n",i,*(regs[i]));
     }
 }
 
