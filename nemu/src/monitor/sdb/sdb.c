@@ -52,6 +52,11 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *N) {
+    //cpu_exec(N);
+    return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -64,10 +69,10 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-
+  { "si", "Step over", cmd_si },
 };
 
-#define NR_CMD ARRLEN(cmd_table)
+#define NR_CMD ARRLEN(cmd_table) //指令数量
 
 static int cmd_help(char *args) {
   /* extract the first argument */
@@ -112,8 +117,8 @@ void sdb_mainloop() {
     /* treat the remaining string as the arguments,
      * which may need further parsing
      */
-    char *args = cmd + strlen(cmd) + 1;
-    if (args >= str_end) {
+    char *args = cmd + strlen(cmd) + 1; //获取指令后的参数
+    if (args >= str_end) {              //如果满足则不可能有参数  
       args = NULL;
     }
 
