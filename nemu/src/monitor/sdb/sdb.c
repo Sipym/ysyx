@@ -17,6 +17,9 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <stdint.h>
+#include <string.h>
+#include "debug.h"
 #include "sdb.h"
 
 static int is_batch_mode = false;
@@ -52,8 +55,30 @@ static int cmd_q(char *args) {
   return -1;
 }
 
-static int cmd_si(char *N) {
-    //cpu_exec(N);
+static int cmd_si(char *args) {
+    if (args == NULL) {
+        cpu_exec(1);
+    } else {
+        uint64_t N = 0, medium_Num = 1;
+        int i,j;
+    // 将字符串中的数字提取出来 
+        for (i = 0; i < strlen(args); i++) {  
+            if ( args[i] > '9') {
+                Log("si 的参数错误，含有非数字符号！");
+                return 0;
+            }
+            for (j = 0, medium_Num = args[i] - '0'; j < (strlen(args) - i - 1); j++) {
+               medium_Num *= 10; 
+            }
+            N += medium_Num;
+        }
+        cpu_exec(N);
+    }
+    return 0;
+}
+
+static int cmd_info(char *args) {
+
     return 0;
 }
 
@@ -62,7 +87,7 @@ static int cmd_help(char *args);
 static struct {
   const char *name;
   const char *description;
-  int (*handler) (char *);
+  int (*handler) (char *); //是一个指向参数为char*,返回整数的函数的指针
 } cmd_table [] = {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
@@ -70,6 +95,7 @@ static struct {
 
   /* TODO: Add more commands */
   { "si", "Step over", cmd_si },
+  { "info","打印程序状态", cmd_info},
 };
 
 #define NR_CMD ARRLEN(cmd_table) //指令数量
@@ -129,13 +155,13 @@ void sdb_mainloop() {
 
     int i;
     for (i = 0; i < NR_CMD; i ++) {
-      if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) { return; }
+      if (strcmp(cmd, cmd_table[i].name) == 0) { // 比较输入的指令与指令表中的哪一个相等
+        if (cmd_table[i].handler(args) < 0) { return; } //当是q指令时，cmd_q的返回值为-1,从而满足条件，使得程序结束。  
         break;
       }
     }
 
-    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
+    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); } //没找到对应的指令
   }
 }
 
