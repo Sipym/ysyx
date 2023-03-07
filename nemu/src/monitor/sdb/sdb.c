@@ -80,10 +80,18 @@ static int cmd_si(char *args) {
 static int cmd_info(char *args) {
     if (args[0] == 'r') {
         isa_reg_display();
+    } else if (args[0] == 'r') {
+
+    } else {
+        Log("命令info的参数错误");
     }
     return 0;
 }
 
+static int cmd_x(char *args) {
+    
+    return 0;
+}
 static int cmd_help(char *args);
 
 static struct {
@@ -97,7 +105,8 @@ static struct {
 
   /* TODO: Add more commands */
   { "si", "Step over", cmd_si },
-  { "info","打印程序状态", cmd_info},
+  { "info", "打印程序状态", cmd_info},
+  { "x", "扫描内存", cmd_x},
 };
 
 #define NR_CMD ARRLEN(cmd_table) //指令数量
