@@ -18,6 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "debug.h"
 #include "sdb.h"
@@ -26,6 +27,9 @@ static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+
+// 将字符串中的数字转换为指定进制的数字  
+uint64_t getstr_num(char* str,uint8_t num_system);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -89,7 +93,15 @@ static int cmd_info(char *args) {
 }
 
 static int cmd_x(char *args) {
-    
+    uint64_t N,addr;
+    char *p_num, *p;
+    p_num = strtok(args, " ");
+    p = strtok(NULL," ");
+    N = getstr_num(p_num, 10);
+    addr = getstr_num(p+2, 16);
+    for (int i = 0; i < N; i++) {
+        printf("0x%016lx\n", addr++);
+    }
     return 0;
 }
 static int cmd_help(char *args);
@@ -182,4 +194,23 @@ void init_sdb() {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+}
+
+// num_system: 字符串str中数字的进制
+uint64_t getstr_num(char* str,uint8_t num_system)
+{
+    uint64_t N = 0, medium_Num = 1;
+    int      i, j;
+    // 将字符串中的数字提取出来
+    for (i = 0; i < strlen(str); i++) {
+        if (str[i] > '9') {
+            Log("非法参数");
+            return 0;
+        }
+        for (j = 0, medium_Num = str[i] - '0'; j < (strlen(str) - i - 1); j++) {
+            medium_Num *= num_system;
+        }
+        N += medium_Num;
+    }
+    return N;
 }
