@@ -37,7 +37,7 @@ static struct rule {
    */
 
   {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
+  {"\\+", '+'},         // plus, 这里是两个\\的原因是因为c中要表示\符号就是用的"\\"
   {"==", TK_EQ},        // equal
 };
 
