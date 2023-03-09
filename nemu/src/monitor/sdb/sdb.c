@@ -20,8 +20,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include "common.h"
 #include "debug.h"
+#include "memory/paddr.h"
 #include "sdb.h"
+#include "utils.h"
 
 static int is_batch_mode = false;
 
@@ -84,7 +88,7 @@ static int cmd_si(char *args) {
 static int cmd_info(char *args) {
     if (args[0] == 'r') {
         isa_reg_display();
-    } else if (args[0] == 'r') {
+    } else if (args[0] == 'w') {
 
     } else {
         Log("命令info的参数错误");
@@ -93,14 +97,15 @@ static int cmd_info(char *args) {
 }
 
 static int cmd_x(char *args) {
-    uint64_t N,addr;
+    uint64_t N, addr;
     char *p_num, *p;
     p_num = strtok(args, " ");
     p = strtok(NULL," ");
     N = getstr_num(p_num, 10);
     addr = getstr_num(p+2, 16);
     for (int i = 0; i < N; i++) {
-        printf("0x%016lx\n", addr++);
+        printf(ANSI_FMT("%016lx",ANSI_FG_BLUE)" 0x%016lx\n",addr,paddr_read(addr, 8));
+        addr++;
     }
     return 0;
 }
