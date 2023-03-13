@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include "debug.h"
 #include <isa.h>
 
 /* We use the POSIX regex functions to process regular expressions.
@@ -103,17 +104,42 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-            case TK_NOTYPE: tokens[nr_token++].type = TK_NOTYPE;
-            case '+': {tokens[nr_token++].type = '+'; break;}
-            case '-': {tokens[nr_token++].type = '-'; break;}
-            case '/': {tokens[nr_token++].type = '/'; break;}
-            case '(': {tokens[nr_token++].type = '('; break;}
-            case ')': {tokens[nr_token++].type = ')'; break;}
-            case TK_DIGTAL_NUM: {
-                      tokens[nr_token].type =  TK_DIGTAL_NUM;
-                      strncpy(tokens[nr_token].str, e + position, substr_len);
-                      nr_token++;
-                      break;}
+            case TK_NOTYPE: 
+                    tokens[nr_token].type = TK_NOTYPE; 
+                    Log("已记录TK_NOTYPE到tokens[%d]",nr_token);
+                    nr_token++;
+                    break;
+            case '+': 
+                    tokens[nr_token].type = '+'; 
+                    Log("已记录'+'到tokens[%d]",nr_token);
+                    nr_token++;
+                    break;
+            case '-':  
+                    tokens[nr_token].type = '-'; 
+                    Log("已记录'-'到tokens[%d]",nr_token);
+                    nr_token++;
+                    break; 
+            case '/':  
+                    tokens[nr_token].type = '/'; 
+                    Log("已记录'/'到tokens[%d]",nr_token);
+                    nr_token++;
+                    break; 
+            case '(':  
+                    tokens[nr_token].type = '(';
+                    Log("已记录'('到tokens[%d]",nr_token);
+                    nr_token++;
+                    break; 
+            case ')':  
+                    tokens[nr_token].type = ')';
+                    Log("已记录')'到tokens[%d]",nr_token);
+                    nr_token++;
+                    break; 
+            case TK_DIGTAL_NUM: 
+                    tokens[nr_token].type =  TK_DIGTAL_NUM;
+                    strncpy(tokens[nr_token].str, e + position, substr_len);
+                    Log("已记录TK_DIGTAL_NUM到tokens[%d]",nr_token);
+                    nr_token++;
+                    break;
             default: TODO();
         }
 
