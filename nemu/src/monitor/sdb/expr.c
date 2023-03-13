@@ -24,7 +24,7 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
-
+  TK_DIGTAL_NUM = 254,
 };
 
 static struct rule {
@@ -39,11 +39,17 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus, 这里是两个\\的原因是因为c中要表示\符号就是用的"\\"
   {"==", TK_EQ},        // equal
+  {"-", '-'},           // 减号
+  {"/", '/'},           // 除号
+  {"\\(", '('},         // 右括号 
+  {"\\)", ')'},         // 左括号 
+  {"*[0-9]", TK_DIGTAL_NUM},
+
 };
 
 #define NR_REGEX ARRLEN(rules)
 
-static regex_t re[NR_REGEX] = {};
+static regex_t re[NR_REGEX] = {}; // 指向模式缓冲区存储区域的指针
 
 /* Rules are used for many times.
  * Therefore we compile them only once before any usage.
@@ -54,9 +60,9 @@ void init_regex() {
   int ret;
 
   for (i = 0; i < NR_REGEX; i ++) {
-    ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
-    if (ret != 0) {
-      regerror(ret, &re[i], error_msg, 128);
+    ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED); 
+    if (ret != 0) { // regcomp返回0时表示编译正确
+      regerror(ret, &re[i], error_msg, 128);// 将错误代码转换为错误信息字符串
       panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
     }
   }
