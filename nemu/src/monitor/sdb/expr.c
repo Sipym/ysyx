@@ -49,7 +49,7 @@ static struct rule {
 
 #define NR_REGEX ARRLEN(rules)
 
-static regex_t re[NR_REGEX] = {}; // 指向模式缓冲区存储区域的指针
+static regex_t re[NR_REGEX] = {}; // 指向了各个token类型的模式缓冲区存储区域
 
 /* Rules are used for many times.
  * Therefore we compile them only once before any usage.
@@ -73,8 +73,8 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
-static int nr_token __attribute__((used))  = 0;
+static Token tokens[32] __attribute__((used)) = {}; //用来顺序记录已识别了的token  
+static int nr_token __attribute__((used))  = 0; //记录了已识别来的token的数目
 
 static bool make_token(char *e) {
   int position = 0;
@@ -86,14 +86,16 @@ static bool make_token(char *e) {
   while (e[position] != '\0') {
     /* Try all rules one by one. */
     for (i = 0; i < NR_REGEX; i ++) {
-      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
+      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {  /*因为要顺序识别token，所以在保证字符串中有匹配项的前提下，
+                                                                                       还要保证是匹配项在字符串的首位*/
+          
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
         Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
             i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
-        position += substr_len;
+        position += substr_len; // 剔除已匹配了的token
 
         /* TODO: Now a new token is recognized with rules[i]. Add codes
          * to record the token in the array `tokens'. For certain types
@@ -101,7 +103,18 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-          default: TODO();
+            case TK_NOTYPE: tokens[nr_token++].type = TK_NOTYPE;
+            case '+': {tokens[nr_token++].type = '+'; break;}
+            case '-': {tokens[nr_token++].type = '-'; break;}
+            case '/': {tokens[nr_token++].type = '/'; break;}
+            case '(': {tokens[nr_token++].type = '('; break;}
+            case ')': {tokens[nr_token++].type = ')'; break;}
+            case TK_DIGTAL_NUM: {
+                      tokens[nr_token].type =  TK_DIGTAL_NUM;
+                      strncpy(tokens[nr_token].str, e + position, substr_len);
+                      nr_token++;
+                      break;}
+            default: TODO();
         }
 
         break;
