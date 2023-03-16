@@ -46,7 +46,7 @@ static struct rule {
   {"/", '/'},           // 除号
   {"\\(", '('},         // 右括号 
   {"\\)", ')'},         // 左括号 
-  {"[0-9]", TK_DIGTAL_NUM},
+  {"[0-9]+", TK_DIGTAL_NUM},
 
 };
 
@@ -108,38 +108,32 @@ static bool make_token(char *e) {
         switch (rules[i].token_type) {
             case TK_NOTYPE: 
                     tokens[nr_token].type = TK_NOTYPE; 
-                    Log("已记录TK_NOTYPE到tokens[%d]",nr_token);
                     nr_token++;
                     break;
             case '+': 
                     tokens[nr_token].type = '+'; 
-                    Log("已记录'+'到tokens[%d]",nr_token);
                     nr_token++;
                     break;
             case '-':  
                     tokens[nr_token].type = '-'; 
-                    Log("已记录'-'到tokens[%d]",nr_token);
                     nr_token++;
                     break; 
             case '/':  
                     tokens[nr_token].type = '/'; 
-                    Log("已记录'/'到tokens[%d]",nr_token);
                     nr_token++;
                     break; 
             case '(':  
                     tokens[nr_token].type = '(';
-                    Log("已记录'('到tokens[%d]",nr_token);
                     nr_token++;
                     break; 
             case ')':  
                     tokens[nr_token].type = ')';
-                    Log("已记录')'到tokens[%d]",nr_token);
                     nr_token++;
                     break; 
             case TK_DIGTAL_NUM: 
+
                     tokens[nr_token].type =  TK_DIGTAL_NUM;
                     strncpy(tokens[nr_token].str, e + position, substr_len);
-                    Log("已记录TK_DIGTAL_NUM到tokens[%d]",nr_token);
                     nr_token++;
                     break;
             default: TODO();
@@ -232,7 +226,7 @@ unsigned int eval(int p, int q)
         return eval(p + 1, q - 1);
     }
     else {
-        int op = find_op(p, q); //主运算符的位置
+        int op = find_op(p, q); //主运算符的位置,以0为开始的
         Log("op = %d\n", op);
         /*int val1, val2;*/
         /*val1 = eval(p, op - 1);*/
