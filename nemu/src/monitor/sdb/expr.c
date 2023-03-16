@@ -15,11 +15,13 @@
 
 #include "debug.h"
 #include <isa.h>
+#include "sdb.h"
 
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include <stdio.h>
 
 enum {
   TK_NOTYPE = 256, TK_EQ,
@@ -44,7 +46,7 @@ static struct rule {
   {"/", '/'},           // 除号
   {"\\(", '('},         // 右括号 
   {"\\)", ')'},         // 左括号 
-  {"*[0-9]", TK_DIGTAL_NUM},
+  {"[0-9]", TK_DIGTAL_NUM},
 
 };
 
@@ -156,6 +158,7 @@ static bool make_token(char *e) {
   return true;
 }
 
+unsigned int eval(int p, int q);
 
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
@@ -164,7 +167,87 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  eval(0, nr_token-1);
+
 
   return 0;
 }
+
+
+struct operation {
+    int op;
+    int op_type;
+};
+
+/*
+ * 找到主运算符所处位置
+ */
+int find_op(int p, int q) {
+    struct operation operation[nr_token];
+    int *token_type =  (int *)malloc(nr_token * sizeof(int));
+    int i, op_Num = 0, tokens_Num = 0;
+    for (i = p; i <= q; i ++) {  // 将tokens的p到q范围内的type这个成员提出来作为一个数组
+        token_type[i] = tokens[i].type;
+        tokens_Num ++;
+    }
+    for (i = 0; i < tokens_Num; i ++) {  // 找到所有可能是主运算符的运算符
+        if (token_type[i] == '(') {     // 把不可能是主运算符的符号变为空格' '
+            while (token_type[i] != ')') {
+                token_type[i] = ' ';  
+                i++;
+            }
+            token_type[i] = ' ';
+        } else if (token_type[i] == '+' || token_type[i] == '-' ||  \
+                   token_type[i] == '*' || token_type[i] == '/') {
+            operation[op_Num].op = i;
+            operation[op_Num].op_type = token_type[i];
+            op_Num++;
+        }
+    }
+    for (i = op_Num; i > 0;  i --) {  //从右导左循环,同类型的运算符优先级是从左导右的
+        if (operation[i-1].op_type == '+' || operation[i-1].op_type == '-')
+            return operation[i-1].op;
+    }
+    // 进入到这里表示表达式中可能的主运算符里没有'+-'的存在,则最右边的可能符号就是主运算符
+    return operation[op_Num-1].op;
+}
+
+unsigned int eval(int p, int q)
+{
+    if (p > q) {
+        /* Bad expression */
+        Assert(0, "错误表达式");
+    }
+    else if (p == q) {
+        /* Single token.
+         * For now this token should be a number.
+         * Return the value of the number.
+         */
+        return getstr_num(tokens[p].str, 10);
+    }
+    else if (/*check_parentheses(p, q) == true*/ 0) {
+        /* The expression is surrounded by a matched pair of parentheses.
+         * If that is the case, just throw away the parentheses.
+         */
+        return eval(p + 1, q - 1);
+    }
+    else {
+        int op = find_op(p, q); //主运算符的位置
+        Log("op = %d\n", op);
+        /*int val1, val2;*/
+        /*val1 = eval(p, op - 1);*/
+        /*val2 = eval(op + 1, q);*/
+        
+        /*switch (tokens[op].type) {*/
+            /*case '+': return val1 + val2;*/
+            /*case '-': return val1 -val2;*/
+            /*case '*': return val1*val2;*/
+            /*case '/': if (val2 == 0) assert(0); // 表达式错误*/
+                      /*return val1/val2; // 要保证val2不等于0*/
+            /*default: assert(0);*/
+        /*}*/
+    }
+    return 0;
+}
+
+

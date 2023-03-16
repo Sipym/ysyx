@@ -19,6 +19,7 @@
 #include <readline/history.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include "common.h"
@@ -109,6 +110,12 @@ static int cmd_x(char *args) {
     }
     return 0;
 }
+
+static int cmd_p(char *args) {
+    bool *success = (bool *)malloc(sizeof(bool)) ;
+    expr(args, success);
+    return 0;
+}
 static int cmd_help(char *args);
 
 static struct {
@@ -124,6 +131,7 @@ static struct {
   { "si", "Step over", cmd_si },
   { "info", "打印程序状态", cmd_info},
   { "x", "扫描内存", cmd_x},
+  { "p", "表达式求值", cmd_p},
 };
 
 #define NR_CMD ARRLEN(cmd_table) //指令数量
