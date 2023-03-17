@@ -327,8 +327,10 @@ int check_parentheses(int p1, int q) {
         }else 
             p = p->next;
     }
-    if (L->next->c == '(' && r->c == ')')       
-        return 1;                   // 表达式正确
+    if (L->next->c == '(' && r->c == ')') {
+        if (tokens_type[0] == '(') 
+            return 1;                   // 表达式正确
+    }
     return 0;
 }
 
