@@ -193,19 +193,35 @@ int find_op(int p, int q) {
         token_type[tokens_Num] = tokens[i].type;
         tokens_Num ++;
     }
-    for (i = 0; i < tokens_Num; i ++) {  // 找到所有可能是主运算符的运算符
-        if (token_type[i] == '(') {     // 把不可能是主运算符的符号变为空格' '
-             
-            while (token_type[i] != ')') {
-                token_type[i] = ' ';  
-                i++;
-            }
+    for (i = 0; i < tokens_Num; ) {  // 找到所有可能是主运算符的运算符
+        int lb_Num = 0, rb_Num = 0;                 // 左括号,右括号的数量
+        if (token_type[i] == '(') {     // 括号内的运算符肯定不是主运算符，把不可能是主运算符的符号变为空格' '
             token_type[i] = ' ';
+            lb_Num ++; 
+            i++;
+            while (lb_Num != rb_Num && (i < tokens_Num)) { // 当lb_Num == rb_Num时，会退出循环，此时所在的片段里的括号及其内容都被赋值为‘ ’
+                if (token_type[i] == '(') {
+                    token_type[i] = ' ';
+                    lb_Num++;
+                    i++;
+                }
+                else if (token_type[i] == ')') {
+                    token_type[i] = ' ';
+                    rb_Num ++;
+                    i++;
+                } else {
+                    token_type[i] = ' ';
+                    i++;
+                }
+            }
         } else if (token_type[i] == '+' || token_type[i] == '-' ||  \
                    token_type[i] == '*' || token_type[i] == '/') {
             operation[op_Num].op = i + p;
             operation[op_Num].op_type = token_type[i];
             op_Num++;
+            i++;
+        } else {
+            i++;
         }
     }
     for (i = op_Num; i > 0;  i --) {  //从右导左循环,同类型的运算符优先级是从左导右的
@@ -321,8 +337,8 @@ int check_parentheses(int p1, int q) {
         return 0;                 // 左右括号的数目是一定要相等的
     }
 
-    if (nr_Nodes == 2) {           // 表示此时只有一对(),只需要判断tokens_type[0]是否等于'(' 
-        if (tokens_type[0] == '(')
+    if (nr_Nodes == 2) {           // 表示此时只有一对(),只需要判断tokens_type[0]是否等于'(' 和末尾是否为')'
+        if (tokens_type[0] == '(' && tokens_type[tokens_Num-1] == ')')
             return 1;
         return 0;
     }
