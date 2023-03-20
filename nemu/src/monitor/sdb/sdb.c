@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <math.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <stdint.h>
@@ -163,10 +164,36 @@ void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
+void check_expression(void) {
+  bool* success  = (bool*)malloc(sizeof(bool));
+  char* filename = "/home/awjl/workspace/ysyx/ysyx-workbench/nemu/tools/gen-expr/input";//生成表达式所在目录
+  FILE* fp       = fopen(filename, "r+");
+  assert(fp != NULL);
+
+  char* line = (char*)malloc(10000 * sizeof(char));
+  line       = fgets(line, 10000, fp);
+
+  while (line != NULL) {
+    char* expression = strchr(line, ' ');   // 包含了换行符
+    char  value_len = expression - line;
+    int ex_len = strlen(expression);
+    char* expression1 = (char*)malloc(10000 * sizeof(char));
+    expression1       = strncpy(expression1, expression, ex_len - 1);// 删除换行符
+
+    char* ex_value = (char*)malloc(10 * sizeof(char));
+    ex_value       = strncpy(ex_value, line, value_len);
+    
+    printf("expression = %s\n", expression1);
+    printf("ex_value = %s\t", ex_value);
+
+    expr(expression1, success);
+    line = fgets(line, 10000, fp);
+  }
+  fclose(fp);
+}
 void sdb_mainloop() {
 
-//  bool *success = (bool*)malloc(sizeof(bool));
-  //expr("((83+5+(((41))-03)))+35", success);
+  check_expression();  // 使用生成的表达式对表达式求值进行检查
 
   if (is_batch_mode) {
     cmd_c(NULL);

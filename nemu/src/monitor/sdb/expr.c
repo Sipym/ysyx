@@ -80,7 +80,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {}; //用来顺序记录已识别了的token  
+static Token tokens[2000] __attribute__((used)) = {}; //用来顺序记录已识别了的token  
 static int nr_token __attribute__((used))  = 0; //记录了已识别来的token的数目
 
 static bool make_token(char *e) {
@@ -99,8 +99,8 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+            //i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len; // 剔除已匹配了的token
 
@@ -171,7 +171,7 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  printf("表达式结果为: %d \n", eval(0, nr_token-1));
+  printf("表达式结果为: %u \n", eval(0, nr_token-1));// 进行无符号运算
 
   return 0;
 }
@@ -234,7 +234,7 @@ int find_op(int p, int q) {
 
 uint32_t eval(int p, int q)
 {
-    Log("p = %d, q = %d\n", p, q);
+     //Log("p = %d, q = %d\n", p, q);
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -251,15 +251,16 @@ uint32_t eval(int p, int q)
         /* The expression is surrounded by a matched pair of parentheses.
          * If that is the case, just throw away the parentheses.
          */
-        Log("已删除表达式两边匹配的括号\n");
+
+        //Log("已删除表达式两边匹配的括号\n");
         return eval(p + 1, q - 1);
     }
     else {
         int op = find_op(p, q); //主运算符的位置,以0为开始的
         Assert(op < q, "产生错误"); 
-        printf("op = %d\n",op);
+        //printf("op = %d\n",op);
 
-        uint64_t val1, val2;
+        uint32_t val1, val2;
         val1 = eval(p, op - 1);
         val2 = eval(op + 1, q);
         
@@ -304,7 +305,7 @@ Node* LinkedListCreatT(int *tokens_type, int len) {
 }
 
 int check_parentheses(int p1, int q) {
-    Log("进入到该函数\n");
+    //Log("进入到该函数\n");
     int *tokens_type = (int *)malloc(nr_token * sizeof(int));
     int tokens_Num = 0;
     for (int i = p1; i <= q; i++) {
@@ -352,6 +353,14 @@ int check_parentheses(int p1, int q) {
             p = p->next;
     }
     if (L->next->c == '(' && r->c == ')') {
+        for (p = L->next->next, i = 0, j = 0; p->next != NULL; p = p->next) { //拿走来开头的左括号和结尾的右括号，判断表达式是否会出现格式错误。
+            if (p->c == '(') 
+                i++;
+            else if (p->c == ')') 
+                j++;
+            if (i < j)                 // 表达式从左到由，如果右括号数目>左括号，则表达式必定错误
+                return 0;
+        }
         if (tokens_type[0] == '(' && tokens_type[tokens_Num-1] == ')') 
             return 1;                   // 表达式正确
     }

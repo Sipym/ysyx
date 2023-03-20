@@ -39,45 +39,53 @@ uint32_t choose(uint32_t n) {
 }
 void gen_num() {
     uint32_t num = rand()%100 ;
-    while (num != 0) {
-        buf[buf_Len++] = num%10 + '0';
-        num /= 10;
+    uint32_t a[100] = {0},i = 0;
+    if (num < 10) {
+        buf[buf_Len++] = num + '0';
+    }else {
+        while (num > 0) {
+            a[i++] = num%10;
+            num/=10;
+        }
+        while (i--) {
+            buf[buf_Len++] = a[i] + '0';
+        }
     }
+
 }
 
 void gen_rand_op() {
-    switch (choose(4)) {
+    switch (choose(3)) {
         case 0: buf[buf_Len++] = '+';
                 break;
         case 1: buf[buf_Len++] = '-';
                 break;
         case 2: buf[buf_Len++] = '*';
                 break;
-        case 3: buf[buf_Len++] = '/';
-                break;
+        //case 3: buf[buf_Len++] = '/';
+                //break;
         default: assert(0);//randc生成随机数发生错误
     }
 }
-// 将生成的表达式存入到buf中，保证不会使得buf溢出
-/*
- *      case 0: gen_num(); break;
- *      case 1: gen('('); gen_rand_expr(); gen(')'); break;
- *      default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
-*/
+
 static void gen_rand_expr() {
     switch (choose(3)) {
-        case 0: gen_num(); break;
-        case 1: buf[buf_Len++] = '(';
+        case 0: 
+                gen_num(); 
+                break;
+        case 1: 
+                buf[buf_Len++] = '(';
                 gen_rand_expr();
                 buf[buf_Len++] = ')';
                 break;
-        default: gen_rand_expr();
-                 gen_rand_op();
-                 gen_rand_expr();
-                 break;
+        default: 
+                gen_rand_expr();
+                gen_rand_op();
+                gen_rand_expr();
+                break;
     }
 
-    //buf[buf_Len++] = '\0';
+
 }
 
 int main(int argc, char* argv[]) {
@@ -105,10 +113,13 @@ int main(int argc, char* argv[]) {
         assert(fp != NULL);
 
         int result;
-        fscanf(fp, "%d", &result);
+        fscanf(fp, "%u", &result);
         pclose(fp);
 
         printf("%u %s\n", result, buf);
+        memset(buf, 0, buf_Len);
+        memset(code_buf, 0, buf_Len+64);
+        buf_Len = 0;
     }
     return 0;
 }
