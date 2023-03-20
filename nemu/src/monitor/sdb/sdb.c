@@ -165,6 +165,9 @@ void sdb_set_batch_mode() {
 
 void sdb_mainloop() {
 
+//  bool *success = (bool*)malloc(sizeof(bool));
+  //expr("((83+5+(((41))-03)))+35", success);
+
   if (is_batch_mode) {
     cmd_c(NULL);
     return;

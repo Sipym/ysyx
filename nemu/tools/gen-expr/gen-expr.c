@@ -13,6 +13,7 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,39 +32,83 @@ static char *code_format =
 "  return 0; "
 "}";
 
-static void gen_rand_expr() {
-  buf[0] = '\0';
+static uint32_t buf_Len = 0;
+
+uint32_t choose(uint32_t n) {
+    return rand() % n;
+}
+void gen_num() {
+    uint32_t num = rand()%100 ;
+    while (num != 0) {
+        buf[buf_Len++] = num%10 + '0';
+        num /= 10;
+    }
 }
 
-int main(int argc, char *argv[]) {
-  int seed = time(0);
-  srand(seed);
-  int loop = 1;
-  if (argc > 1) {
-    sscanf(argv[1], "%d", &loop);
-  }
-  int i;
-  for (i = 0; i < loop; i ++) {
-    gen_rand_expr();
+void gen_rand_op() {
+    switch (choose(4)) {
+        case 0: buf[buf_Len++] = '+';
+                break;
+        case 1: buf[buf_Len++] = '-';
+                break;
+        case 2: buf[buf_Len++] = '*';
+                break;
+        case 3: buf[buf_Len++] = '/';
+                break;
+        default: assert(0);//randc生成随机数发生错误
+    }
+}
+// 将生成的表达式存入到buf中，保证不会使得buf溢出
+/*
+ *      case 0: gen_num(); break;
+ *      case 1: gen('('); gen_rand_expr(); gen(')'); break;
+ *      default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
+*/
+static void gen_rand_expr() {
+    switch (choose(3)) {
+        case 0: gen_num(); break;
+        case 1: buf[buf_Len++] = '(';
+                gen_rand_expr();
+                buf[buf_Len++] = ')';
+                break;
+        default: gen_rand_expr();
+                 gen_rand_op();
+                 gen_rand_expr();
+                 break;
+    }
 
-    sprintf(code_buf, code_format, buf);
+    //buf[buf_Len++] = '\0';
+}
 
-    FILE *fp = fopen("/tmp/.code.c", "w");
-    assert(fp != NULL);
-    fputs(code_buf, fp);
-    fclose(fp);
+int main(int argc, char* argv[]) {
+    int seed = time(0);
+    srand(seed);
+    int loop = 1;
+    if (argc > 1) {
+        sscanf(argv[1], "%d", &loop);
+    }
+    int i;
+    for (i = 0; i < loop; i++) {
+        gen_rand_expr();
 
-    int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
-    if (ret != 0) continue;
+        sprintf(code_buf, code_format, buf);
 
-    fp = popen("/tmp/.expr", "r");
-    assert(fp != NULL);
+        FILE* fp = fopen("/tmp/.code.c", "w");
+        assert(fp != NULL);
+        fputs(code_buf, fp);
+        fclose(fp);
 
-    int result;
-    fscanf(fp, "%d", &result);
-    pclose(fp);
+        int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
+        if (ret != 0) continue;
 
-    printf("%u %s\n", result, buf);
-  }
-  return 0;
+        fp = popen("/tmp/.expr", "r");
+        assert(fp != NULL);
+
+        int result;
+        fscanf(fp, "%d", &result);
+        pclose(fp);
+
+        printf("%u %s\n", result, buf);
+    }
+    return 0;
 }

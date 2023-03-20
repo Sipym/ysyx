@@ -46,10 +46,11 @@ static struct rule {
   {"\\+", '+'},         // plus, 这里是两个\\的原因是因为c中要表示\符号就是用的"\\"
   {"==", TK_EQ},        // equal
   {"-", '-'},           // 减号
-  {"/", '/'},           // 除号
+  {"\\*", '*'},         // 乘法
+  {"\\/", '/'},         // 除号
   {"\\(", '('},         // 右括号 
   {"\\)", ')'},         // 左括号 
-  {"[0-9]+", TK_DIGTAL_NUM},
+  {"[0-9]+", TK_DIGTAL_NUM},// 十进制数
 
 };
 
@@ -114,18 +115,6 @@ static bool make_token(char *e) {
                     //nr_token++;
                     //不记录空格，将空格忽略
                     break;
-            case '+': 
-                    tokens[nr_token].type = '+'; 
-                    nr_token++;
-                    break;
-            case '-':  
-                    tokens[nr_token].type = '-'; 
-                    nr_token++;
-                    break; 
-            case '/':  
-                    tokens[nr_token].type = '/'; 
-                    nr_token++;
-                    break; 
             case '(':  
                     tokens[nr_token].type = '(';
                     nr_token++;
@@ -134,8 +123,25 @@ static bool make_token(char *e) {
                     tokens[nr_token].type = ')';
                     nr_token++;
                     break; 
+            case '+': 
+                    tokens[nr_token].type = '+'; 
+                    nr_token++;
+                    break;
+            case '-':  
+                    tokens[nr_token].type = '-'; 
+                    nr_token++;
+                    break; 
+            case '*':  
+                    tokens[nr_token].type = '*'; 
+                    nr_token++;
+                    break; 
+            case '/':  
+                    tokens[nr_token].type = '/'; 
+                    nr_token++;
+                    break; 
             case TK_DIGTAL_NUM: 
                     tokens[nr_token].type =  TK_DIGTAL_NUM;
+                    Assert(substr_len <= 32, "str成员缓冲区溢出");
                     strncpy(tokens[nr_token].str, substr_start, substr_len);
                     nr_token++;
                     break;
@@ -155,7 +161,7 @@ static bool make_token(char *e) {
   return true;
 }
 
-unsigned int eval(int p, int q);
+uint32_t eval(int p, int q);
 int check_parentheses(int p, int q);
 
 word_t expr(char *e, bool *success) {
@@ -180,15 +186,16 @@ struct operation {
  * 找到主运算符所处位置
  */
 int find_op(int p, int q) {
-    struct operation operation[nr_token];
+    struct operation operation[nr_token]; //定义了一个足够大的结构体数组
     int *token_type =  (int *)malloc(nr_token * sizeof(int));
-    int i, op_Num = 0, tokens_Num = 0;
+    int i, op_Num = 0, tokens_Num = 0;// i ; op_Num:操作符数量; tokens_Num:传入的子字符串的tokens的数量
     for (i = p; i <= q; i ++) {  // 将tokens的p到q范围内的type这个成员提出来作为一个数组
         token_type[tokens_Num] = tokens[i].type;
         tokens_Num ++;
     }
     for (i = 0; i < tokens_Num; i ++) {  // 找到所有可能是主运算符的运算符
         if (token_type[i] == '(') {     // 把不可能是主运算符的符号变为空格' '
+             
             while (token_type[i] != ')') {
                 token_type[i] = ' ';  
                 i++;
@@ -209,7 +216,7 @@ int find_op(int p, int q) {
     return operation[op_Num-1].op;
 }
 
-unsigned int eval(int p, int q)
+uint32_t eval(int p, int q)
 {
     Log("p = %d, q = %d\n", p, q);
     if (p > q) {
@@ -302,6 +309,7 @@ int check_parentheses(int p1, int q) {
         else if (p->c == ')') 
             j++;
         if (i < j) {                 // 表达式从左到由，如果右括号数目>左括号，则表达式必定错误
+            Assert(0, "表达式错误");
             return 0;
         }
         if (p->next == NULL) {
@@ -309,7 +317,7 @@ int check_parentheses(int p1, int q) {
         }
     }
     if ( i != j) {
-        //assert(0);//非法表达式
+        Assert(1, "表达式错误");
         return 0;                 // 左右括号的数目是一定要相等的
     }
 
@@ -328,7 +336,7 @@ int check_parentheses(int p1, int q) {
             p = p->next;
     }
     if (L->next->c == '(' && r->c == ')') {
-        if (tokens_type[0] == '(') 
+        if (tokens_type[0] == '(' && tokens_type[tokens_Num-1] == ')') 
             return 1;                   // 表达式正确
     }
     return 0;
