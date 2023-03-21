@@ -101,7 +101,7 @@ static bool make_token(char *e) {
         int substr_len = pmatch.rm_eo;
 
         //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-           //i, rules[i].regex, position, substr_len, substr_len, substr_start);
+         //  i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len; // 剔除已匹配了的token
 
@@ -237,7 +237,7 @@ int find_op(int p, int q) {
 
 uint32_t eval(int p, int q)
 {
-     Log("p = %d, q = %d\n", p, q);
+     //Log("p = %d, q = %d\n", p, q);
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -261,7 +261,7 @@ uint32_t eval(int p, int q)
     else {
         uint32_t op = find_op(p, q); //主运算符的位置,以0为开始的
         Assert(op < q, "产生错误"); 
-        printf("op = %d\n",op);
+        //printf("op = %d\n",op);
 
         uint32_t val1, val2;
         val1 = eval(p, op - 1);
