@@ -115,6 +115,7 @@ static int cmd_x(char *args) {
 static int cmd_p(char *args) {
     bool *success = (bool *)malloc(sizeof(bool)) ;
     expr(args, success);
+    printf("success = %d\n",*success);
     return 0;
 }
 static int cmd_help(char *args);
@@ -166,7 +167,7 @@ void sdb_set_batch_mode() {
 
 void check_expression(void) {
   bool* success  = (bool*)malloc(sizeof(bool));
-  char* filename = "/home/awjl/workspace/ysyx/ysyx-workbench/nemu/tools/gen-expr/input";//生成表达式所在目录
+  char* filename = "/home/awjl/workspace/ysyx/ysyx-workbench/nemu/tools/gen-expr/error_input";//生成表达式所在目录
   FILE* fp       = fopen(filename, "r+");
   assert(fp != NULL);
 

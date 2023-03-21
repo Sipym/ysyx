@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 enum {
   TK_NOTYPE = 256, TK_EQ,
@@ -80,7 +81,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[2000] __attribute__((used)) = {}; //用来顺序记录已识别了的token  
+static Token tokens[60000] __attribute__((used)) = {}; //用来顺序记录已识别了的token  
 static int nr_token __attribute__((used))  = 0; //记录了已识别来的token的数目
 
 static bool make_token(char *e) {
@@ -100,7 +101,7 @@ static bool make_token(char *e) {
         int substr_len = pmatch.rm_eo;
 
         //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            //i, rules[i].regex, position, substr_len, substr_len, substr_start);
+           //i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len; // 剔除已匹配了的token
 
@@ -142,6 +143,7 @@ static bool make_token(char *e) {
             case TK_DIGTAL_NUM: 
                     tokens[nr_token].type =  TK_DIGTAL_NUM;
                     Assert(substr_len <= 32, "str成员缓冲区溢出");
+                    strncpy(tokens[nr_token].str, "\0", 32);
                     strncpy(tokens[nr_token].str, substr_start, substr_len);
                     nr_token++;
                     break;
@@ -171,7 +173,8 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  printf("表达式结果为: %u \n", eval(0, nr_token-1));// 进行无符号运算
+  printf("表达式结果为: %u\n", eval(0, nr_token-1));// 进行无符号运算
+  nr_token = 0;
 
   return 0;
 }
@@ -188,7 +191,7 @@ struct operation {
 int find_op(int p, int q) {
     struct operation operation[nr_token]; //定义了一个足够大的结构体数组
     int *token_type =  (int *)malloc(nr_token * sizeof(int));
-    int i, op_Num = 0, tokens_Num = 0;// i ; op_Num:操作符数量; tokens_Num:传入的子字符串的tokens的数量
+    uint32_t i, op_Num = 0, tokens_Num = 0;// i ; op_Num:操作符数量; tokens_Num:传入的子字符串的tokens的数量
     for (i = p; i <= q; i ++) {  // 将tokens的p到q范围内的type这个成员提出来作为一个数组
         token_type[tokens_Num] = tokens[i].type;
         tokens_Num ++;
@@ -234,7 +237,7 @@ int find_op(int p, int q) {
 
 uint32_t eval(int p, int q)
 {
-     //Log("p = %d, q = %d\n", p, q);
+     Log("p = %d, q = %d\n", p, q);
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -256,9 +259,9 @@ uint32_t eval(int p, int q)
         return eval(p + 1, q - 1);
     }
     else {
-        int op = find_op(p, q); //主运算符的位置,以0为开始的
+        uint32_t op = find_op(p, q); //主运算符的位置,以0为开始的
         Assert(op < q, "产生错误"); 
-        //printf("op = %d\n",op);
+        printf("op = %d\n",op);
 
         uint32_t val1, val2;
         val1 = eval(p, op - 1);
