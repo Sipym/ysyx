@@ -101,7 +101,7 @@ static bool make_token(char *e) {
         int substr_len = pmatch.rm_eo;
 
         //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-         //  i, rules[i].regex, position, substr_len, substr_len, substr_start);
+           i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len; // 剔除已匹配了的token
 
@@ -173,6 +173,7 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
+  Assert(*success, "make_token分析失败");
   printf("表达式结果为: %u\n", eval(0, nr_token-1));// 进行无符号运算
   nr_token = 0;
 
@@ -185,8 +186,10 @@ struct operation {
     int op_type;
 };
 
-/*
- * 找到主运算符所处位置
+/* @brief:  根据传入的pq确定表达式的某一个片段，找到这个片段表达式的主运算符
+ * @param1: p 片段的起点  
+ * @param2: q 片段的终点  
+ * @return: 返回主运算符所在的位置: token[i]中的i
  */
 int find_op(int p, int q) {
     struct operation operation[nr_token]; //定义了一个足够大的结构体数组
@@ -235,9 +238,12 @@ int find_op(int p, int q) {
     return operation[op_Num-1].op;
 }
 
+/* @brief:  求值表达式
+ * @return: 返回传入表达式的值(表达式合法的话)
+ */
 uint32_t eval(int p, int q)
 {
-     //Log("p = %d, q = %d\n", p, q);
+    //Log("p = %d, q = %d\n", p, q); // 用于调试
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -255,7 +261,7 @@ uint32_t eval(int p, int q)
          * If that is the case, just throw away the parentheses.
          */
 
-        //Log("已删除表达式两边匹配的括号\n");
+        //Log("已删除表达式两边匹配的括号\n");  //用于调试
         return eval(p + 1, q - 1);
     }
     else {
@@ -269,9 +275,9 @@ uint32_t eval(int p, int q)
         
         switch (tokens[op].type) {
             case '+': return val1 + val2;
-            case '-': return val1 -val2;
-            case '*': return val1*val2;
-            case '/': if (val2 == 0) assert(0); // 表达式错误
+            case '-': return val1 - val2;
+            case '*': return val1 * val2;
+            case '/': if (val2 == 0) Assert(0, "存在除0的行为"); // 表达式错误
                       return val1/val2; // 要保证val2不等于0
             default: assert(0);
         }
@@ -307,8 +313,15 @@ Node* LinkedListCreatT(int *tokens_type, int len) {
     return L;
 }
 
+
+/* @brief:  检查传入表达式片段存在左右圆括号是否匹配
+ * @param1: p 片段的起点  
+ * @param2: q 片段的终点  
+ * @return: 1： 表示存在最左边右边匹配的圆括号,如(1+(2+3)+2)
+ *          0: 表示不存在匹配的左右圆括号，如1+(2+3), 1+2, (1+2)+(3+4)
+ */
 int check_parentheses(int p1, int q) {
-    //Log("进入到该函数\n");
+    //Log("进入到该函数\n"); //用于调试
     int *tokens_type = (int *)malloc(nr_token * sizeof(int));
     int tokens_Num = 0;
     for (int i = p1; i <= q; i++) {

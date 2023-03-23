@@ -38,7 +38,7 @@ uint32_t choose(uint32_t n) {
     return rand() % n;
 }
 void gen_num() {
-    uint32_t num = rand()%100 ;
+    uint32_t num = rand() ;
     uint32_t a[100] = {0},i = 0;
     if (num < 10) {
         buf[buf_Len++] = num + '0';
@@ -55,15 +55,15 @@ void gen_num() {
 }
 
 void gen_rand_op() {
-    switch (choose(3)) {
+    switch (choose(4)) {
         case 0: buf[buf_Len++] = '+';
                 break;
         case 1: buf[buf_Len++] = '-';
                 break;
         case 2: buf[buf_Len++] = '*';
                 break;
-        //case 3: buf[buf_Len++] = '/';
-                //break;
+        case 3: buf[buf_Len++] = '/';
+                break;
         default: assert(0);//randc生成随机数发生错误
     }
 }

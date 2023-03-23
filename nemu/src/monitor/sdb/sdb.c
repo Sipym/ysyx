@@ -115,7 +115,6 @@ static int cmd_x(char *args) {
 static int cmd_p(char *args) {
     bool *success = (bool *)malloc(sizeof(bool)) ;
     expr(args, success);
-    printf("success = %d\n",*success);
     return 0;
 }
 static int cmd_help(char *args);
@@ -165,6 +164,9 @@ void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
+
+/* @brief:  将nemu/toool/gen-expr/input中生成的表达式传递给主函数，来验证表达式求值的功能是否正确
+ */
 void check_expression(void) {
   bool* success  = (bool*)malloc(sizeof(bool));
   char* filename = "/home/awjl/workspace/ysyx/ysyx-workbench/nemu/tools/gen-expr/input";//生成表达式所在目录
@@ -193,7 +195,7 @@ void check_expression(void) {
 }
 void sdb_mainloop() {
 
-  check_expression();  // 使用生成的表达式对表达式求值进行检查
+  //check_expression();  // 使用生成的表达式对表达式求值进行检查
 
   if (is_batch_mode) {
     cmd_c(NULL);
