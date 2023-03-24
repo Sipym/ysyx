@@ -114,7 +114,9 @@ static int cmd_x(char *args) {
 
 static int cmd_p(char *args) {
     bool *success = (bool *)malloc(sizeof(bool)) ;
+    *success = true;
     expr(args, success);
+    free(success);
     return 0;
 }
 static int cmd_help(char *args);
