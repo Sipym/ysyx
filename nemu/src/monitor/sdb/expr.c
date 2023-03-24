@@ -187,12 +187,14 @@ word_t expr(char* e, bool* success) {
     for (int i = 0; i < nr_token; i ++) {
         if (tokens[i].type == '*' && (i == 0 || tokens[i-1].type == '+' \
                                              || tokens[i-1].type == '-' \
-                                             || tokens[i-1].type == '/')) {
+                                             || tokens[i-1].type == '/' \
+                                             || tokens[i-1].type == '(')) {
             tokens[i].type = DEREF;
         }
         else if ( tokens[i].type == '-' && (i == 0 || tokens[i-1].type == '+' \
                                                    || tokens[i-1].type == '*' \
-                                                   || tokens[i-1].type == '/')){
+                                                   || tokens[i-1].type == '/' \
+                                                   || tokens[i-1].type == '(')) {
             tokens[i].type = MINUS;
         }
 
@@ -216,6 +218,9 @@ struct operation {
  * @return: 返回主运算符所在的位置: token[i]中的i
  */
 int find_op(int p, int q) {
+    if (tokens[p].type == MINUS) {  // 如-(1+2),-1等等含负号的表达式
+        return 0;
+    }
     struct operation operation[nr_token];   // 定义了一个足够大的结构体数组
     int*             token_type = (int*)malloc(nr_token * sizeof(int));
     uint32_t         i, op_Num = 0,
@@ -269,7 +274,7 @@ int find_op(int p, int q) {
  * @return: 返回传入表达式的值(表达式合法的话)
  */
 uint32_t eval(int p, int q) {
-    // Log("p = %d, q = %d\n", p, q); // 用于调试
+     Log("p = %d, q = %d\n", p, q); // 用于调试
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -285,12 +290,14 @@ uint32_t eval(int p, int q) {
          * If that is the case, just throw away the parentheses.
          */
 
-        // Log("已删除表达式两边匹配的括号\n");  //用于调试
+         Log("已删除表达式两边匹配的括号\n");  //用于调试
         return eval(p + 1, q - 1);
     } else {
-        uint32_t op = find_op(p, q);   // 主运算符的位置,以0为开始的
-        Assert(op < q, "产生错误");
-        // printf("op = %d\n",op);
+        int op = find_op(p, q);   // 主运算符的位置,以0为开始的
+        if (op == 0) {
+            return (-1)*eval(p+1,q);
+        }
+        printf("op = %d\n",op);
 
         uint32_t val1, val2;
         val1 = eval(p, op - 1);
@@ -303,7 +310,6 @@ uint32_t eval(int p, int q) {
         case '/':
             if (val2 == 0) Assert(0, "存在除0的行为");   // 表达式错误
             return val1 / val2;                          // 要保证val2不等于0
-        case MINUS: return 1; 
         default: assert(0);
         }
     }
@@ -346,7 +352,7 @@ Node* LinkedListCreatT(int* tokens_type, int len) {
  *          0: 表示不存在匹配的左右圆括号，如1+(2+3), 1+2, (1+2)+(3+4)
  */
 int check_parentheses(int p1, int q) {
-    // Log("进入到该函数\n"); //用于调试
+     Log("进入到该函数\n"); //用于调试
     int* tokens_type = (int*)malloc(nr_token * sizeof(int));
     int  tokens_Num  = 0;
     for (int i = p1; i <= q; i++) {

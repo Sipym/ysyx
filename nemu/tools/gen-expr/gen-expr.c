@@ -69,11 +69,17 @@ void gen_rand_op() {
 }
 
 static void gen_rand_expr() {
-    switch (choose(3)) {
+    switch (choose(4)) {
         case 0: 
                 gen_num(); 
                 break;
         case 1: 
+                buf[buf_Len++] = '(';
+                gen_rand_expr();
+                buf[buf_Len++] = ')';
+                break;
+        case 2:
+                buf[buf_Len++] = '-';
                 buf[buf_Len++] = '(';
                 gen_rand_expr();
                 buf[buf_Len++] = ')';
