@@ -35,6 +35,8 @@ enum {
     TK_DIGTAL_NUM,
     MINUS,
     DEREF,
+    TK_UNEQ,
+    TK_AND,
 };
 
 static struct rule {
@@ -55,6 +57,8 @@ static struct rule {
     {"\\(", '('},                // 右括号
     {"\\)", ')'},                // 左括号
     {"[0-9]+", TK_DIGTAL_NUM},   // 十进制数
+    {"!=", TK_UNEQ},             // 不等于
+    {"&&", TK_AND},              // 与
 
 };
 
@@ -81,7 +85,7 @@ void init_regex() {
 
 typedef struct token {
     int  type;
-    char str[32];
+    char str[64];
 } Token;
 
 static Token tokens[60000] __attribute__((used)) = {};   // 用来顺序记录已识别了的token
@@ -105,12 +109,7 @@ static bool make_token(char* e) {
                 int   substr_len   = pmatch.rm_eo;
 
                 Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-                    i,
-                    rules[i].regex,
-                    position,
-                    substr_len,
-                    substr_len,
-                    substr_start);
+                        i,rules[i].regex,position,substr_len,substr_len,substr_start);
 
                 position += substr_len;   // 剔除已匹配了的token
 
@@ -120,43 +119,55 @@ static bool make_token(char* e) {
                  */
 
                 switch (rules[i].token_type) {
-                case TK_NOTYPE:
-                    // tokens[nr_token].type = TK_NOTYPE;
-                    // nr_token++;
-                    // 不记录空格，将空格忽略
-                    break;
-                case '(':
-                    tokens[nr_token].type = '(';
-                    nr_token++;
-                    break;
-                case ')':
-                    tokens[nr_token].type = ')';
-                    nr_token++;
-                    break;
-                case '+':
-                    tokens[nr_token].type = '+';
-                    nr_token++;
-                    break;
-                case '-':
-                    tokens[nr_token].type = '-';
-                    nr_token++;
-                    break;
-                case '*':
-                    tokens[nr_token].type = '*';
-                    nr_token++;
-                    break;
-                case '/':
-                    tokens[nr_token].type = '/';
-                    nr_token++;
-                    break;
-                case TK_DIGTAL_NUM:
-                    tokens[nr_token].type = TK_DIGTAL_NUM;
-                    Assert(substr_len <= 32, "str成员缓冲区溢出");
-                    strncpy(tokens[nr_token].str, "\0", 32);
-                    strncpy(tokens[nr_token].str, substr_start, substr_len);
-                    nr_token++;
-                    break;
-                default: TODO();
+                    case TK_NOTYPE:
+                        // tokens[nr_token].type = TK_NOTYPE;
+                        // nr_token++;
+                        // 不记录空格，将空格忽略
+                        break;
+                    case '(':
+                        tokens[nr_token].type = '(';
+                        nr_token++;
+                        break;
+                    case ')':
+                        tokens[nr_token].type = ')';
+                        nr_token++;
+                        break;
+                    case '+':
+                        tokens[nr_token].type = '+';
+                        nr_token++;
+                        break;
+                    case '-':
+                        tokens[nr_token].type = '-';
+                        nr_token++;
+                        break;
+                    case '*':
+                        tokens[nr_token].type = '*';
+                        nr_token++;
+                        break;
+                    case '/':
+                        tokens[nr_token].type = '/';
+                        nr_token++;
+                        break;
+                    case TK_DIGTAL_NUM:
+                        tokens[nr_token].type = TK_DIGTAL_NUM;
+                        Assert(substr_len <= 64, "str成员缓冲区溢出");
+                        strncpy(tokens[nr_token].str, "\0", 64);
+                        strncpy(tokens[nr_token].str, substr_start, substr_len);
+                        nr_token++;
+                        break;
+                    case TK_EQ:
+                        tokens[nr_token].type = TK_EQ;
+                        nr_token++;
+                        break;
+                    case TK_UNEQ:
+                        tokens[nr_token].type = TK_UNEQ;
+                        nr_token++;
+                        break;
+                    case TK_AND:
+                        tokens[nr_token].type = TK_AND;
+                        nr_token++;
+                        break;
+                    default: TODO();
                 }
 
                 break;
@@ -172,7 +183,7 @@ static bool make_token(char* e) {
     return true;
 }
 
-uint32_t eval(int p, int q);
+uint64_t eval(int p, int q);
 int      check_parentheses(int p, int q);
 
 word_t expr(char* e, bool* success) {
@@ -184,23 +195,17 @@ word_t expr(char* e, bool* success) {
 
     /* TODO: Insert codes to evaluate the expression. */
 
-    for (int i = 0; i < nr_token; i ++) {
-        if (tokens[i].type == '*' && (i == 0 || tokens[i-1].type == '+' \
-                                             || tokens[i-1].type == '-' \
-                                             || tokens[i-1].type == '/' \
-                                             || tokens[i-1].type == '(')) {
+    for (int i = 0; i < nr_token; i ++) {  //这里规定指针解引用符号和负号的前面必须是'('或者解引用符号位于表达式的最前面。
+        if (tokens[i].type == '*' && (i == 0 || tokens[i-1].type == '(')) {
             tokens[i].type = DEREF;
         }
-        else if ( tokens[i].type == '-' && (i == 0 || tokens[i-1].type == '+' \
-                                                   || tokens[i-1].type == '*' \
-                                                   || tokens[i-1].type == '/' \
-                                                   || tokens[i-1].type == '(')) {
+        else if ( tokens[i].type == '-' && (tokens[i-1].type == '(')) {  //因为如果不包含括号这里的-1+1的实际结果错误，除非使得-1周围有括号包围; 需要注意
             tokens[i].type = MINUS;
         }
 
     }
 
-    printf("表达式结果为: %u\n", eval(0, nr_token - 1));   // 进行无符号运算
+    printf("表达式结果为: %lu\n", eval(0, nr_token - 1));   // 进行无符号运算
     nr_token = 0;
 
     return 0;
@@ -223,7 +228,7 @@ int find_op(int p, int q) {
     }
     struct operation operation[nr_token];   // 定义了一个足够大的结构体数组
     int*             token_type = (int*)malloc(nr_token * sizeof(int));
-    uint32_t         i, op_Num = 0,
+    uint64_t         i, op_Num = 0,
                 tokens_Num = 0;   // i ; op_Num:操作符数量; tokens_Num:传入的子字符串的tokens的数量
     for (i = p; i <= q; i++) {   // 将tokens的p到q范围内的type这个成员提出来作为一个数组
         token_type[tokens_Num] = tokens[i].type;
@@ -253,7 +258,7 @@ int find_op(int p, int q) {
                 }
             }
         } else if (token_type[i] == '+' || token_type[i] == '-' || token_type[i] == '*' ||
-                   token_type[i] == '/') {
+                   token_type[i] == '/' || token_type[i] == TK_EQ || token_type[i] == TK_UNEQ || token_type[i] == TK_AND) {
             operation[op_Num].op      = i + p;
             operation[op_Num].op_type = token_type[i];
             op_Num++;
@@ -262,18 +267,26 @@ int find_op(int p, int q) {
             i++;
         }
     }
+
+    for (i = op_Num; i > 0; i--) {   // 从右导左循环,同类型的运算符优先级是从左导右的
+        if (operation[i - 1].op_type == TK_EQ || operation[i - 1].op_type == TK_UNEQ || operation[i-1].op_type == TK_AND)
+            return operation[i - 1].op;
+    }
+
+    // 进入到这里表示表达式中可能的主运算符里没有'==,!=,&&'的存在
     for (i = op_Num; i > 0; i--) {   // 从右导左循环,同类型的运算符优先级是从左导右的
         if (operation[i - 1].op_type == '+' || operation[i - 1].op_type == '-')
             return operation[i - 1].op;
     }
-    // 进入到这里表示表达式中可能的主运算符里没有'+-'的存在,则最右边的可能符号就是主运算符
+
+    // 进入到这里表示表达式中可能的主运算符里没有'==,!=,&&,+,-'的存在,则最右边的是优先级最低的
     return operation[op_Num - 1].op;
 }
 
 /* @brief:  求值表达式
  * @return: 返回传入表达式的值(表达式合法的话)
  */
-uint32_t eval(int p, int q) {
+uint64_t eval(int p, int q) {
      Log("p = %d, q = %d\n", p, q); // 用于调试
     if (p > q) {
         /* Bad expression */
@@ -299,18 +312,21 @@ uint32_t eval(int p, int q) {
         }
         printf("op = %d\n",op);
 
-        uint32_t val1, val2;
+        uint64_t val1, val2;
         val1 = eval(p, op - 1);
         val2 = eval(op + 1, q);
 
         switch (tokens[op].type) {
-        case '+': return val1 + val2;
-        case '-': return val1 - val2;
-        case '*': return val1 * val2;
-        case '/':
-            if (val2 == 0) Assert(0, "存在除0的行为");   // 表达式错误
-            return val1 / val2;                          // 要保证val2不等于0
-        default: assert(0);
+            case '+': return val1 + val2;
+            case '-': return val1 - val2;
+            case '*': return val1 * val2;
+            case '/':
+                if (val2 == 0) Assert(0, "存在除0的行为");   // 表达式错误
+                return val1 / val2;                          // 要保证val2不等于0
+            case TK_EQ: return (val1 == val2);
+            case TK_UNEQ: return (val1 != val2);
+            case TK_AND: return (val1 && val2);
+            default: assert(0);
         }
     }
     return 0;
@@ -352,7 +368,7 @@ Node* LinkedListCreatT(int* tokens_type, int len) {
  *          0: 表示不存在匹配的左右圆括号，如1+(2+3), 1+2, (1+2)+(3+4)
  */
 int check_parentheses(int p1, int q) {
-     Log("进入到该函数\n"); //用于调试
+    Log("进入到该函数\n");   // 用于调试
     int* tokens_type = (int*)malloc(nr_token * sizeof(int));
     int  tokens_Num  = 0;
     for (int i = p1; i <= q; i++) {
