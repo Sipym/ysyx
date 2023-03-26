@@ -37,6 +37,7 @@ enum {
     DEREF,
     TK_UNEQ,
     TK_AND,
+    TK_REG,
 };
 
 static struct rule {
@@ -59,6 +60,7 @@ static struct rule {
     {"[0-9]+", TK_DIGTAL_NUM},   // 十进制数
     {"!=", TK_UNEQ},             // 不等于
     {"&&", TK_AND},              // 与
+    {"\\S{2}",TK_REG},
 
 };
 
@@ -167,6 +169,13 @@ static bool make_token(char* e) {
                         tokens[nr_token].type = TK_AND;
                         nr_token++;
                         break;
+                    case TK_REG:
+                        Assert(nr_token > 0 && tokens[nr_token-1].type == '*', "错误表达式");//此时解引用还未被定义为DEREF
+                        tokens[nr_token].type = TK_REG;
+                        strncpy(tokens[nr_token].str, "\0", 64);
+                        strncpy(tokens[nr_token].str, substr_start, substr_len);
+                        nr_token++;
+                        break;
                     default: TODO();
                 }
 
@@ -225,6 +234,8 @@ struct operation {
 int find_op(int p, int q) {
     if (tokens[p].type == MINUS) {  // 如-(1+2),-1等等含负号的表达式
         return 0;
+    }else if (tokens[p].type == DEREF) {  // 指针取值的格式规定一定是(*s)
+        return -1;
     }
     struct operation operation[nr_token];   // 定义了一个足够大的结构体数组
     int*             token_type = (int*)malloc(nr_token * sizeof(int));
@@ -309,6 +320,11 @@ uint64_t eval(int p, int q) {
         int op = find_op(p, q);   // 主运算符的位置,以0为开始的
         if (op == 0) {
             return (-1)*eval(p+1,q);
+        }
+        if (op == -1) {  // 要求了指针解引用的格式为(*s)
+            if (q - p == 1) {  // 去掉括号后，格式为*s
+                return *tokens[q].str;
+            }
         }
         printf("op = %d\n",op);
 
