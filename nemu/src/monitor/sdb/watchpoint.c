@@ -35,9 +35,22 @@ void init_wp_pool() {
     wp_pool[i].next = (i == NR_WP - 1 ? NULL : &wp_pool[i + 1]);
   }
 
-  head = NULL;
-  free_ = wp_pool;
+  head = NULL; //用来组织使用中的监视点结构
+  free_ = wp_pool; //用于组织空闲的监视点结构
 }
 
 /* TODO: Implement the functionality of watchpoint */
+
+WP* new_wp(int args) {
+    Assert(free != NULL,"没有空闲监视点结构");
+    WP *l = head;
+    l = free_;
+    free_ = free_->next;
+    return l; 
+}
+
+void free_wp(WP *wp) {
+    
+}
+
 

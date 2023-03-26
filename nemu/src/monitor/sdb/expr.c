@@ -33,6 +33,7 @@ enum {
 
     /* TODO: Add more token types */
     TK_DIGTAL_NUM,
+    TK_HEX_NUM,
     MINUS,
     DEREF,
     TK_UNEQ,
@@ -57,6 +58,7 @@ static struct rule {
     {"\\/", '/'},                // 除号
     {"\\(", '('},                // 右括号
     {"\\)", ')'},                // 左括号
+    {"0x[0-9]+",TK_HEX_NUM},     // 十六进制
     {"[0-9]+", TK_DIGTAL_NUM},   // 十进制数
     {"!=", TK_UNEQ},             // 不等于
     {"&&", TK_AND},              // 与
@@ -174,6 +176,13 @@ static bool make_token(char* e) {
                         tokens[nr_token].type = TK_REG;
                         strncpy(tokens[nr_token].str, "\0", 64);
                         strncpy(tokens[nr_token].str, substr_start, substr_len);
+                        nr_token++;
+                        break;
+                    case TK_HEX_NUM:
+                        tokens[nr_token].type = TK_HEX_NUM;
+                        Assert(substr_len <= 64, "str成员缓冲区溢出");
+                        strncpy(tokens[nr_token].str, "\0", 64);
+                        strncpy(tokens[nr_token].str, substr_start+2, substr_len-2);
                         nr_token++;
                         break;
                     default: TODO();
@@ -307,8 +316,9 @@ uint64_t eval(int p, int q) {
          * For now this token should be a number.
          * Return the value of the number.
          */
-        Assert(tokens[p].type == TK_DIGTAL_NUM, "表达式错误!");
-        return getstr_num(tokens[p].str, 10);
+        Assert(tokens[p].type == TK_DIGTAL_NUM || tokens[p].type == TK_HEX_NUM, "表达式错误!");
+        if (tokens[p].type == TK_DIGTAL_NUM) return getstr_num(tokens[p].str, 10);
+        else if (tokens[p].type == TK_HEX_NUM) return getstr_num(tokens[p].str, 16);
     } else if (check_parentheses(p, q) == true) {
         /* The expression is surrounded by a matched pair of parentheses.
          * If that is the case, just throw away the parentheses.
