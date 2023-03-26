@@ -112,6 +112,13 @@ static int cmd_x(char *args) {
     return 0;
 }
 
+/* @brief:  表达式求值
+ *          表达式格式要求: 寄存值取值时(即解引用计算)，格式必须形如(*s)
+ *                          进行负号计算时，格式必须为(-expr),expr如果是非数字的话，也要被括号包含。  
+ *          不足: 没有实现寄存器之间的运算，如求*(寄存器地址+1)
+ * @param:  args 将输入的参数传给函数
+ * @return: 0: 正常
+ */
 static int cmd_p(char *args) {
     bool *success = (bool *)malloc(sizeof(bool)) ;
     *success = true;
