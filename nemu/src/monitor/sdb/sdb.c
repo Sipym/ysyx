@@ -205,9 +205,7 @@ void check_expression(void) {
 void sdb_mainloop() {
 
   //check_expression();  // 使用生成的表达式对表达式求值进行检查
-  bool* success = (bool *)malloc(sizeof(bool));
-  expr("0x11",success);
-  expr("0x11+0",success);
+  
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
