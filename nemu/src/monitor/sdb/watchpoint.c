@@ -29,10 +29,10 @@ typedef struct watchpoint {
     int                NO;
     struct watchpoint* next;
     /* TODO: Add more members if necessary */
-
+    char* str[100];
 } WP;
 
-//使用static的作用是保证链表不会被初始化?？？？？
+//static使得变量即使在超出文件范围时，也能保持其值  
 static WP  wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
 static uint64_t WP_NUM = 0; // 现有的监控点的数量
