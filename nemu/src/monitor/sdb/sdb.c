@@ -28,7 +28,7 @@
 #include "memory/paddr.h"
 #include "sdb.h"
 #include "utils.h"
-
+#include "watchpoint.h"
 static int is_batch_mode = false;
 
 void init_regex();
@@ -40,7 +40,6 @@ uint64_t getstr_num(char* str,uint8_t num_system);
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
   static char *line_read = NULL;
-
   if (line_read) {
     free(line_read);
     line_read = NULL;
@@ -106,7 +105,8 @@ static int cmd_x(char *args) {
     N = getstr_num(p_num, 10);
     addr = getstr_num(p+2, 16);
     for (int i = 0; i < N; i++) {
-        printf(ANSI_FMT("%016lx",ANSI_FG_BLUE)" 0x%016lx\n",addr,paddr_read(addr, 8));
+        printf(ANSI_FMT("%016lx",ANSI_FG_BLUE)" 0x%016lx\n",\
+                addr,paddr_read(addr, 8));
         addr++;
     }
     return 0;
@@ -114,37 +114,48 @@ static int cmd_x(char *args) {
 
 /* @brief:  表达式求值
  *          表达式格式要求: 寄存值取值时(即解引用计算)，格式必须形如(*s)
- *                          进行负号计算时，格式必须为(-expr),expr如果是非数字的话，也要被括号包含。  
+ *                          进行负号计算时，格式必须为(-expr),expr如果是非数字的话，
+ *                          也要被括号包含。  
  *          不足: 没有实现寄存器之间的运算，如求*(寄存器地址+1)
  * @param:  args 将输入的参数传给函数
  * @return: 0: 正常
  */
 static int cmd_p(char *args) {
+    Assert(args != NULL, "没有表达式");
     bool *success = (bool *)malloc(sizeof(bool)) ;
     *success = true;
-    expr(args, success);
+    uint64_t result = 0;
+    result = expr(args, success);
+    printf("表达式结果为: %lu\n", result);   // 进行无符号运算
     free(success);
     return 0;
 }
+
+static int cmd_w(char *args) {
+    new_wp(args); //创建表达式
+    return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
-  const char *name;
-  const char *description;
-  int (*handler) (char *); //是一个指向参数为char*,返回整数的函数的指针
-} cmd_table [] = {
-  { "help", "Display information about all supported commands", cmd_help },
-  { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
+    const char *name;
+    const char *description;
+    int (*handler) (char *);    // 是一个指向参数为char*,返回整数的函数的指针
+} cmd_table[] = {
+    {"help", "Display information about all supported commands", cmd_help},
+    {"c", "Continue the execution of the program", cmd_c},
+    {"q", "Exit NEMU", cmd_q},
 
-  /* TODO: Add more commands */
-  { "si", "Step over", cmd_si },
-  { "info", "打印程序状态", cmd_info},
-  { "x", "扫描内存", cmd_x},
-  { "p", "表达式求值", cmd_p},
+    /* TODO: Add more commands */
+    {"si", "Step over", cmd_si},
+    {"info", "打印程序状态", cmd_info},
+    {"x", "扫描内存", cmd_x},
+    {"p", "表达式求值", cmd_p},
+    {"w", "设置监视点", cmd_w},
 };
 
-#define NR_CMD ARRLEN(cmd_table) //指令数量
+#define NR_CMD ARRLEN (cmd_table)    // 指令数量
 
 static int cmd_help(char *args) {
   /* extract the first argument */
@@ -203,7 +214,8 @@ void check_expression(void) {
   fclose(fp);
 }
 void sdb_mainloop() {
-
+  cmd_w("*$0");
+  cmd_w("1 + 2");
   //check_expression();  // 使用生成的表达式对表达式求值进行检查
   
   if (is_batch_mode) {

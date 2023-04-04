@@ -13,8 +13,8 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include "sdb.h"
-#include <stdint.h>
+#include "watchpoint.h" //include和WP结构体都在头文件中了
+#include <stdio.h>
 
 #define NR_WP 32
 
@@ -25,14 +25,16 @@ enum wp_status {
     DISABLE,
 };
 
-typedef struct watchpoint {
-    int                NO;
-    struct watchpoint* next;
-    /* TODO: Add more members if necessary */
-    char* str[100];
-} WP;
+/*typedef struct watchpoint {*/
+    /*int                NO;*/
+    /*struct watchpoint* next;*/
+     //TODO: Add more members if necessary 
+    /*char str[100];*/
+    /*uint64_t cur_value;*/
+    /*uint64_t old_value;*/
+/*} WP;*/
 
-//static使得变量即使在超出文件范围时，也能保持其值  
+//static使得外部不可见该变量
 static WP  wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
 static uint64_t WP_NUM = 0; // 现有的监控点的数量
@@ -42,43 +44,56 @@ void init_wp_pool() {
     for (i = 0; i < NR_WP; i++) {
         wp_pool[i].NO   = i;
         wp_pool[i].next = (i == NR_WP - 1 ? NULL : &wp_pool[i + 1]);
+        wp_pool[i].Len = 0;
+        wp_pool[i].cur_value = 0;
+        wp_pool[i].old_value = 0;
     }
 
-    head  = NULL;      //用来组织使用中的监视点结构
+    head  = (WP *) malloc(sizeof(WP));      //用来组织使用中的监视点结构
     free_ = wp_pool;   //用于组织空闲的监视点结构
 }
 
 /* TODO: Implement the functionality of watchpoint */
 
-/* @brief:  删除链表某结点
- * @param:  wp 要删除的结点
- * @return: NULL
- */
-void Linklist_del(WP *wp) {
-    assert(wp != NULL);    
-    wp->next = NULL;
-}
-
-
 /* @brief:  从free_中添加新的监视点,并加添进去的监视点从free_中删除
  * @param:  {NONE} 
  * @return: {NONE}
  */
-void new_wp (void) {
+void new_wp (char *expression) {
+    //printf("No symbol "%s" in current context.", expression);
     WP *q = head;
-    Assert(free_ == NULL,"没有空闲的监视点了");
+    Assert(free_ != NULL,"没有空闲的监视点了");
     int j = 0;
+    bool wp_add = false;
+    bool *success = (bool *)malloc (sizeof (bool));
+    *success = true;
     do {
         if (q->next == NULL) {
             q->next         = free_;
+            free_->Len = strlen(expression);
+            strncpy(free_->str, "\0", 100);
+            strncpy(free_->str, expression, free_->Len);
+            printf("hardware watchpoint %d: %s\n",free_->NO,free_->str);
+            free_->cur_value = expr(expression, success);
+            free_->old_value = free_->cur_value;
             WP_NUM++;
+            wp_add = true;
+            break;
         } else q = q->next;
         j++;
-    } while (j < WP_NUM);    // 将空闲结点加入head组织的结构中
-    //删除那个不再是空闲的结点
-    free_ = free_->next;
+    } while (j <= WP_NUM);    // 将空闲结点加入head组织的结构中
+
+    //删除那个不再是空闲的结点,即free_的后一个结点变为来头结点，头结点被删除
+    if (wp_add) {
+        free_ = free_->next;
+        q->next->next = NULL;
+    }
 }
 
+// 将head结构传出去  
+WP* get_head(void) {
+    return head;
+}
 /* @brief:  从head中释放指定的监视点结点
  * @param:  {WP* wp} 要删除的结点
  * @return: {void}

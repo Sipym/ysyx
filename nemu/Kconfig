@@ -118,7 +118,7 @@ config CC_ASAN
   bool "Enable address sanitizer"
   default n
 
-config CONFIG_WATCHPOINT
+config WATCHPOINT
   bool "Enable watchpoint for nemu"
   default n
 endmenu

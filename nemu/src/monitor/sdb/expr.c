@@ -112,8 +112,8 @@ static bool make_token(char* e) {
                 char* substr_start = e + position;
                 int   substr_len   = pmatch.rm_eo;
 
-                Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-                        i,rules[i].regex,position,substr_len,substr_len,substr_start);
+//                Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+//                        i,rules[i].regex,position,substr_len,substr_len,substr_start);
 
                 position += substr_len;   // 剔除已匹配了的token
 
@@ -210,7 +210,7 @@ word_t expr(char* e, bool* success) {
         return 0;
     }
     Assert(*success, "make_token错误");
-
+    Assert(nr_token > 0, "表达式为空");
     /* TODO: Insert codes to evaluate the expression. */
 
     for (int i = 0; i < nr_token; i ++) {  //这里规定指针解引用符号和负号的前面必须是'('或者解引用符号位于表达式的最前面。
@@ -222,11 +222,10 @@ word_t expr(char* e, bool* success) {
         }
 
     }
-
-    printf("表达式结果为: %lu\n", eval(0, nr_token - 1));   // 进行无符号运算
+    uint64_t result = eval(0,nr_token-1);
     nr_token = 0;
 
-    return 0;
+    return result;
 }
 
 
@@ -307,7 +306,7 @@ int find_op(int p, int q) {
  * @return: 返回传入表达式的值(表达式合法的话)
  */
 uint64_t eval(int p, int q) {
-     Log("p = %d, q = %d\n", p, q); // 用于调试
+    //Log("p = %d, q = %d\n", p, q); // 用于调试
     if (p > q) {
         /* Bad expression */
         Assert(0, "错误表达式");
@@ -324,7 +323,7 @@ uint64_t eval(int p, int q) {
          * If that is the case, just throw away the parentheses.
          */
 
-         Log("已删除表达式两边匹配的括号\n");  //用于调试
+         //Log("已删除表达式两边匹配的括号\n");  //用于调试
         return eval(p + 1, q - 1);
     } else {
         int op = find_op(p, q);   // 主运算符的位置,以0为开始的
@@ -336,7 +335,7 @@ uint64_t eval(int p, int q) {
                 return *tokens[q].str;
             }
         }
-        printf("op = %d\n",op);
+        //printf("op = %d\n",op);
 
         uint64_t val1, val2;
         val1 = eval(p, op - 1);
@@ -394,7 +393,7 @@ Node* LinkedListCreatT(int* tokens_type, int len) {
  *          0: 表示不存在匹配的左右圆括号，如1+(2+3), 1+2, (1+2)+(3+4)
  */
 int check_parentheses(int p1, int q) {
-    Log("进入到该函数\n");   // 用于调试
+    //Log("进入到该函数\n");   // 用于调试
     int* tokens_type = (int*)malloc(nr_token * sizeof(int));
     int  tokens_Num  = 0;
     for (int i = p1; i <= q; i++) {
