@@ -94,6 +94,7 @@ void new_wp (char *expression) {
 WP* get_head(void) {
     return head;
 }
+
 /* @brief:  从head中释放指定的监视点结点
  * @param:  {WP* wp} 要删除的结点
  * @return: {void}
@@ -110,7 +111,7 @@ void free_wp (WP *wp) {
             break;
         }
     }
-    pre->next = p->next->next; //将结点wp从head链表中删除
+    pre->next = p->next; //将结点wp从head链表中删除
     WP *q = free_;
     while (q->next != NULL) { //找到free_链表的指向NULL尾结点
        q = q->next; 

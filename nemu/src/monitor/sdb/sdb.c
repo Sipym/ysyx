@@ -90,6 +90,19 @@ static int cmd_info(char *args) {
     if (args[0] == 'r') {
         isa_reg_display();
     } else if (args[0] == 'w') {
+        WP *head = get_head();
+        if (head->next == NULL) {
+            printf("No watchpoints\n");
+            return 1;
+        }
+        printf ("Num        Type           Disp        Enb        Address        what\n");
+        head = head->next;
+        while (head != NULL) {
+            printf (
+                "%.2d         hw watchpoint  keep        y                         %s\n",
+                head->NO, head->str);
+            head = head->next;
+        }
 
     } else {
         Log("命令info的参数错误");
@@ -136,6 +149,19 @@ static int cmd_w(char *args) {
     return 0;
 }
 
+static int cmd_d(char *args) {
+    uint8_t No = getstr_num(args, 10);
+    WP *head = get_head();
+     
+    while (head->NO != No && head->next != NULL) {
+        head = head->next;
+    }
+    if (head->NO == No) {
+        free_wp(head);  //释放指定的监视点
+    }
+    return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -153,6 +179,7 @@ static struct {
     {"x", "扫描内存", cmd_x},
     {"p", "表达式求值", cmd_p},
     {"w", "设置监视点", cmd_w},
+    {"d", "删除监视点", cmd_d},
 };
 
 #define NR_CMD ARRLEN (cmd_table)    // 指令数量
@@ -214,8 +241,6 @@ void check_expression(void) {
   fclose(fp);
 }
 void sdb_mainloop() {
-  cmd_w("*$0");
-  cmd_w("1 + 2");
   //check_expression();  // 使用生成的表达式对表达式求值进行检查
   
   if (is_batch_mode) {
