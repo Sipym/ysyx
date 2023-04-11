@@ -17,7 +17,9 @@
 #define __SDB_H__
 
 #include <common.h>
+#include <stdint.h>
 
 word_t expr(char *e, bool *success);
-
+uint64_t getstr_num(char* str,uint8_t num_system);
+uint64_t eval(int p, int q);
 #endif

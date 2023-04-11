@@ -15,19 +15,31 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <math.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include "common.h"
+#include "debug.h"
+#include "memory/paddr.h"
 #include "sdb.h"
-
+#include "utils.h"
+#include "watchpoint.h"
 static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
 
+// 将字符串中的数字转换为指定进制的数字  
+uint64_t getstr_num(char* str,uint8_t num_system);
+
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
   static char *line_read = NULL;
-
   if (line_read) {
     free(line_read);
     line_read = NULL;
@@ -52,22 +64,125 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+static int cmd_si(char *args) {
+    if (args == NULL) {
+        cpu_exec(1);
+    } else {
+        uint64_t N = 0, medium_Num = 1;
+        int i,j;
+    // 将字符串中的数字提取出来 
+        for (i = 0; i < strlen(args); i++) {  
+            if ( args[i] > '9') {
+                Log("si 的参数错误，含有非数字符号！");
+                return 0;
+            }
+            for (j = 0, medium_Num = args[i] - '0'; j < (strlen(args) - i - 1); j++) {
+               medium_Num *= 10; 
+            }
+            N += medium_Num;
+        }
+        cpu_exec(N);
+    }
+    return 0;
+}
+
+static int cmd_info(char *args) {
+    if (args[0] == 'r') {
+        isa_reg_display();
+    } else if (args[0] == 'w') {
+        WP *head = get_head();
+        if (head->next == NULL) {
+            printf("No watchpoints\n");
+            return 1;
+        }
+        printf ("Num        Type           Disp        Enb        Address        what\n");
+        head = head->next;
+        while (head != NULL) {
+            printf (
+                "%.2d         hw watchpoint  keep        y                         %s\n",
+                head->NO, head->str);
+            head = head->next;
+        }
+
+    } else {
+        Log("命令info的参数错误");
+    }
+    return 0;
+}
+
+static int cmd_x(char *args) {
+    uint64_t N, addr;
+    char *p_num, *p;
+    p_num = strtok(args, " ");
+    p = strtok(NULL," ");
+    N = getstr_num(p_num, 10);
+    addr = getstr_num(p+2, 16);
+    for (int i = 0; i < N; i++) {
+        printf(ANSI_FMT("%016lx",ANSI_FG_BLUE)" 0x%016lx\n",\
+                addr,paddr_read(addr, 8));
+        addr++;
+    }
+    return 0;
+}
+
+/* @brief:  表达式求值
+ *          表达式格式要求: 寄存值取值时(即解引用计算)，格式必须形如(*s)
+ *                          进行负号计算时，格式必须为(-expr),expr如果是非数字的话，
+ *                          也要被括号包含。  
+ *          不足: 没有实现寄存器之间的运算，如求*(寄存器地址+1)
+ * @param:  args 将输入的参数传给函数
+ * @return: 0: 正常
+ */
+static int cmd_p(char *args) {
+    Assert(args != NULL, "没有表达式");
+    bool *success = (bool *)malloc(sizeof(bool)) ;
+    *success = true;
+    uint64_t result = 0;
+    result = expr(args, success);
+    printf("表达式结果为: %lu\n", result);   // 进行无符号运算
+    free(success);
+    return 0;
+}
+
+static int cmd_w(char *args) {
+    new_wp(args); //创建表达式
+    return 0;
+}
+
+static int cmd_d(char *args) {
+    uint8_t No = getstr_num(args, 10);
+    WP *head = get_head();
+     
+    while (head->NO != No && head->next != NULL) {
+        head = head->next;
+    }
+    if (head->NO == No) {
+        free_wp(head);  //释放指定的监视点
+    }
+    return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
-  const char *name;
-  const char *description;
-  int (*handler) (char *);
-} cmd_table [] = {
-  { "help", "Display information about all supported commands", cmd_help },
-  { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
+    const char *name;
+    const char *description;
+    int (*handler) (char *);    // 是一个指向参数为char*,返回整数的函数的指针
+} cmd_table[] = {
+    {"help", "Display information about all supported commands", cmd_help},
+    {"c", "Continue the execution of the program", cmd_c},
+    {"q", "Exit NEMU", cmd_q},
 
-  /* TODO: Add more commands */
-
+    /* TODO: Add more commands */
+    {"si", "Step over", cmd_si},
+    {"info", "打印程序状态", cmd_info},
+    {"x", "扫描内存", cmd_x},
+    {"p", "表达式求值", cmd_p},
+    {"w", "设置监视点", cmd_w},
+    {"d", "删除监视点", cmd_d},
 };
 
-#define NR_CMD ARRLEN(cmd_table)
+#define NR_CMD ARRLEN (cmd_table)    // 指令数量
 
 static int cmd_help(char *args) {
   /* extract the first argument */
@@ -96,7 +211,38 @@ void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
+
+/* @brief:  将nemu/toool/gen-expr/input中生成的表达式传递给主函数，来验证表达式求值的功能是否正确
+ */
+void check_expression(void) {
+  bool* success  = (bool*)malloc(sizeof(bool));
+  char* filename = "/home/awjl/workspace/ysyx/ysyx-workbench/nemu/tools/gen-expr/input";//生成表达式所在目录
+  FILE* fp       = fopen(filename, "r+");
+  assert(fp != NULL);
+
+  char* line = (char*)malloc(60000 * sizeof(char));
+  line       = fgets(line, 60000, fp);
+
+  while (line != NULL) {
+    char* expression = strchr(line, ' ');   // 包含了换行符
+    char  value_len = expression - line;
+    int ex_len = strlen(expression);
+    char* expression1 = (char*)malloc(60000 * sizeof(char));
+    expression1       = strncpy(expression1, expression, ex_len - 1);// 删除换行符
+
+    char* ex_value = (char*)malloc(32 * sizeof(char));
+    ex_value       = strncpy(ex_value, line, value_len);
+    
+    printf("ex_value = %s\t", ex_value);
+
+    expr(expression1, success);
+    line = fgets(line, 60000, fp);
+  }
+  fclose(fp);
+}
 void sdb_mainloop() {
+  //check_expression();  // 使用生成的表达式对表达式求值进行检查
+  
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
@@ -112,8 +258,8 @@ void sdb_mainloop() {
     /* treat the remaining string as the arguments,
      * which may need further parsing
      */
-    char *args = cmd + strlen(cmd) + 1;
-    if (args >= str_end) {
+    char *args = cmd + strlen(cmd) + 1; //获取指令后的参数
+    if (args >= str_end) {              //如果满足则不可能有参数  
       args = NULL;
     }
 
@@ -124,13 +270,13 @@ void sdb_mainloop() {
 
     int i;
     for (i = 0; i < NR_CMD; i ++) {
-      if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) { return; }
+      if (strcmp(cmd, cmd_table[i].name) == 0) { // 比较输入的指令与指令表中的哪一个相等
+        if (cmd_table[i].handler(args) < 0) { return; } //当是q指令时，cmd_q的返回值为-1,从而满足条件，使得程序结束。  
         break;
       }
     }
 
-    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
+    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); } //没找到对应的指令
   }
 }
 
@@ -140,4 +286,23 @@ void init_sdb() {
 
   /* Initialize the watchpoint pool. */
   init_wp_pool();
+}
+
+// num_system: 字符串str中数字的进制
+uint64_t getstr_num(char* str,uint8_t num_system)
+{
+    uint64_t N = 0, medium_Num = 1;
+    int      i, j;
+    // 将字符串中的数字提取出来
+    for (i = 0; i < strlen(str); i++) {
+        if (str[i] > '9') {
+            Log("非法参数");
+            return 0;
+        }
+        for (j = 0, medium_Num = str[i] - '0'; j < (strlen(str) - i - 1); j++) {
+            medium_Num *= num_system;
+        }
+        N += medium_Num;
+    }
+    return N;
 }

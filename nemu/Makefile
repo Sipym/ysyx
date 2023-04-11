@@ -59,3 +59,9 @@ else
 # Include rules to build NEMU
 include $(NEMU_HOME)/scripts/native.mk
 endif
+
+.PHONY: count count_noempty
+count:
+	@find -name '*.[ch]' -exec cat {} \; | wc -l
+count_noempty:
+	@find -name '*.[ch]' -exec cat {} \;  | grep '\S' | wc -l
