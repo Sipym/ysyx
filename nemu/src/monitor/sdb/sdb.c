@@ -61,6 +61,7 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
 }
 
@@ -240,26 +241,28 @@ void check_expression(void) {
   }
   fclose(fp);
 }
-void sdb_mainloop() {
-  //check_expression();  // 使用生成的表达式对表达式求值进行检查
-  
+
+void sdb_mainloop () {
+  // check_expression();  // 使用生成的表达式对表达式求值进行检查
   if (is_batch_mode) {
-    cmd_c(NULL);
+    cmd_c (NULL);
     return;
   }
 
-  for (char *str; (str = rl_gets()) != NULL; ) {
-    char *str_end = str + strlen(str);
+  for (char *str; (str = rl_gets()) != NULL;) {
+    char *str_end = str + strlen (str);
 
     /* extract the first token as the command */
-    char *cmd = strtok(str, " ");
-    if (cmd == NULL) { continue; }
+    char *cmd = strtok (str, " ");
+    if (cmd == NULL) {
+      continue;
+    }
 
     /* treat the remaining string as the arguments,
      * which may need further parsing
      */
-    char *args = cmd + strlen(cmd) + 1; //获取指令后的参数
-    if (args >= str_end) {              //如果满足则不可能有参数  
+    char *args = cmd + strlen (cmd) + 1;    // 获取指令后的参数
+    if (args >= str_end) {                  // 如果满足则不可能有参数
       args = NULL;
     }
 
@@ -269,18 +272,23 @@ void sdb_mainloop() {
 #endif
 
     int i;
-    for (i = 0; i < NR_CMD; i ++) {
-      if (strcmp(cmd, cmd_table[i].name) == 0) { // 比较输入的指令与指令表中的哪一个相等
-        if (cmd_table[i].handler(args) < 0) { return; } //当是q指令时，cmd_q的返回值为-1,从而满足条件，使得程序结束。  
+    for (i = 0; i < NR_CMD; i++) {
+      if (strcmp (cmd, cmd_table[i].name) ==
+          0) {    // 比较输入的指令与指令表中的哪一个相等
+        if (cmd_table[i].handler (args) < 0) {
+            return;
+        }    // 执行指令,当是q指令时，cmd_q的返回值为-1,从而满足条件，使得程序结束。
         break;
       }
     }
 
-    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); } //没找到对应的指令
+    if (i == NR_CMD) {
+      printf ("Unknown command '%s'\n", cmd);
+    }    // 没找到对应的指令
   }
 }
 
-void init_sdb() {
+void init_sdb () {
   /* Compile the regular expressions. */
   init_regex();
 
@@ -289,20 +297,19 @@ void init_sdb() {
 }
 
 // num_system: 字符串str中数字的进制
-uint64_t getstr_num(char* str,uint8_t num_system)
-{
-    uint64_t N = 0, medium_Num = 1;
-    int      i, j;
-    // 将字符串中的数字提取出来
-    for (i = 0; i < strlen(str); i++) {
-        if (str[i] > '9') {
-            Log("非法参数");
-            return 0;
-        }
-        for (j = 0, medium_Num = str[i] - '0'; j < (strlen(str) - i - 1); j++) {
-            medium_Num *= num_system;
-        }
-        N += medium_Num;
+uint64_t getstr_num (char *str, uint8_t num_system) {
+  uint64_t N = 0, medium_Num = 1;
+  int      i, j;
+  // 将字符串中的数字提取出来
+  for (i = 0; i < strlen (str); i++) {
+    if (str[i] > '9') {
+      Log ("非法参数");
+      return 0;
     }
-    return N;
+    for (j = 0, medium_Num = str[i] - '0'; j < (strlen (str) - i - 1); j++) {
+      medium_Num *= num_system;
+    }
+    N += medium_Num;
+  }
+  return N;
 }

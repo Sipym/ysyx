@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include <stdio.h>
 #include "../monitor/sdb/watchpoint.h"
 #include "utils.h"
 
@@ -25,7 +26,7 @@
  * This is useful when you use the `si' command.
  * You can modify this value as you want.
  */
-#define MAX_INST_TO_PRINT 10
+#define MAX_INST_TO_PRINT 10   // 最多显示到屏幕的指令数
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
