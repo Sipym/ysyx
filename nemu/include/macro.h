@@ -84,7 +84,9 @@
 #define MAP(c, f) c(f)
 
 #define BITMASK(bits) ((1ull << (bits)) - 1)
+//位抽取
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
+//符号扩展,用于自定义了一个指定大小的整数类型,利用了位域和结构体的知识点
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 #define ROUNDUP(a, sz)   ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))

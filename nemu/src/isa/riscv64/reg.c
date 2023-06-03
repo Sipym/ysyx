@@ -29,7 +29,7 @@ const char *regs[] = {
 void isa_reg_display() {
     u_int64_t reg_Num = sizeof(regs)/sizeof(regs[0]);
     for ( int i = 0; i < reg_Num; i++) {
-        printf("%s\t 0x%x\t %d\n", regs[i], *regs[i], *regs[i]);
+        printf("%s\t 0x%lx\t %ld\n", regs[i], cpu.gpr[i], cpu.gpr[i]);
     }
 }
 

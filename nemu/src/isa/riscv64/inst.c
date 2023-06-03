@@ -33,6 +33,10 @@ enum {
 #define immU() do { *imm = SEXT(BITS(i, 31, 12), 20) << 12; } while(0)
 #define immS() do { *imm = (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); } while(0)
 
+/* @param: imm: 立即数 
+ * @param: src1, src2: 两个源操作数
+ * @param: dest: 目的操作数
+ */
 static void decode_operand(Decode *s, int *dest, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst.val;
   int rd  = BITS(i, 11, 7);
@@ -51,14 +55,16 @@ static int decode_exec(Decode *s) {
   word_t src1 = 0, src2 = 0, imm = 0;
   s->dnpc = s->snpc;
 
-#define INSTPAT_INST(s) ((s)->isa.inst.val)
+#define INSTPAT_INST(s) ((s)->isa.inst.val)  
 #define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
   decode_operand(s, &dest, &src1, &src2, &imm, concat(TYPE_, type)); \
   __VA_ARGS__ ; \
 }
 
   INSTPAT_START();
-  INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(dest) = s->pc + imm);
+  //INSTPAT用来定义一条模式匹配规则
+  //INSTPAT(模式字符串, 指令名称, 指令类型, 指令执行操作);
+  INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(dest) = s->pc + imm);  
   INSTPAT("??????? ????? ????? 011 ????? 00000 11", ld     , I, R(dest) = Mr(src1 + imm, 8));
   INSTPAT("??????? ????? ????? 011 ????? 01000 11", sd     , S, Mw(src1 + imm, 8, src2));
 
@@ -72,6 +78,6 @@ static int decode_exec(Decode *s) {
 }
 
 int isa_exec_once(Decode *s) {
-  s->isa.inst.val = inst_fetch(&s->snpc, 4);
-  return decode_exec(s);
+  s->isa.inst.val = inst_fetch(&s->snpc, 4); // // 取指，并更新snpc使其指向下一个pc
+  return decode_exec(s); // 译码
 }
