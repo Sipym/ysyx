@@ -71,15 +71,15 @@ static void exec_once (Decode *s, vaddr_t pc) {
   s->pc   = pc;
   s->snpc = pc;
   isa_exec_once (s); 
-  cpu.pc = s->dnpc; 
+  cpu.pc = s->dnpc; //这里就表明了cpu的pc以动态指令为准
 #ifdef CONFIG_ITRACE
   char *p       = s->logbuf;
-  p             += snprintf (p, sizeof (s->logbuf), FMT_WORD ":", s->pc);
+  p             += snprintf (p, sizeof (s->logbuf), FMT_WORD ":", s->pc); //将当前pc的值写入logbuf  
   int      ilen = s->snpc - s->pc;
   int      i;
   uint8_t *inst = (uint8_t *)&s->isa.inst.val;
   for (i = ilen - 1; i >= 0; i--) {
-      p += snprintf (p, 4, " %02x", inst[i]);
+      p += snprintf (p, 4, " %02x", inst[i]); //写入指令
   }
   int ilen_max  = MUXDEF (CONFIG_ISA_x86, 8, 4);
   int space_len = ilen_max - ilen;

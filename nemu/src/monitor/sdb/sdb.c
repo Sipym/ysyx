@@ -243,7 +243,7 @@ void check_expression(void) {
 }
 
 void sdb_mainloop () {
-    cmd_si(NULL);
+    //cmd_si("4");
   // check_expression();  // 使用生成的表达式对表达式求值进行检查
   if (is_batch_mode) {
     cmd_c (NULL);
