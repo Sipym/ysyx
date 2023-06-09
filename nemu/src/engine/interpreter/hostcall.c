@@ -22,7 +22,7 @@ void set_nemu_state(int state, vaddr_t pc, int halt_ret) {
   difftest_skip_ref();
   nemu_state.state = state;
   nemu_state.halt_pc = pc;
-  nemu_state.halt_ret = halt_ret;
+  nemu_state.halt_ret = halt_ret; // 如果halt_ret等于0，则会输出 HIT BAD TRAP
 }
 
 __attribute__((noinline))

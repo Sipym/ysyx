@@ -243,7 +243,6 @@ void check_expression(void) {
 }
 
 void sdb_mainloop () {
-    cmd_si("4");
   // check_expression();  // 使用生成的表达式对表达式求值进行检查
   if (is_batch_mode) {
     cmd_c (NULL);
@@ -303,11 +302,17 @@ uint64_t getstr_num (char *str, uint8_t num_system) {
   int      i, j;
   // 将字符串中的数字提取出来
   for (i = 0; i < strlen (str); i++) {
-    if (str[i] > '9') {
-      Log ("非法参数");
+    if (!((str[i] <= '9' && str[i] >= '0') || (str[i] >= 'a' && str[i] <= 'f') || (str[i] >= 'A' && str[i] <= 'F'))) {
       return 0;
     }
-    for (j = 0, medium_Num = str[i] - '0'; j < (strlen (str) - i - 1); j++) {
+    medium_Num = str[i] - '0';
+    if (str[i] >= 'a' && str[i] <= 'f') {
+        medium_Num = str[i] - 'a' + 10; 
+    } else if (str[i] >= 'A' && str[i] <= 'F') {
+        medium_Num = str[i] - 'A' + 10; 
+    }
+
+    for (j = 0; j < (strlen (str) - i - 1); j++) {
       medium_Num *= num_system;
     }
     N += medium_Num;

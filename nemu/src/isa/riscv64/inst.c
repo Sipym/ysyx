@@ -27,6 +27,7 @@ enum {
   TYPE_N, // none
   TYPE_J,
   TYPE_SB,
+  TYPE_R,
 };
 
 #define src1R() do { *src1 = R(rs1); } while (0)
@@ -48,11 +49,13 @@ static void decode_operand(Decode *s, int *dest, word_t *src1, word_t *src2, wor
   int rs2 = BITS(i, 24, 20);
   *dest = rd;
   switch (type) {
-    case TYPE_I: src1R();          immI(); break;
-    case TYPE_U:                   immU(); break;
-    case TYPE_S: src1R(); src2R(); immS(); break;
-    case TYPE_J:                   immJ(); break;
-    case TYPE_SB: src1R(); src2R(); immSB(); break;
+    case TYPE_I:  src1R();          immI();   break;
+    case TYPE_U:                    immU();   break;
+    case TYPE_S:  src1R(); src2R(); immS();   break;
+    case TYPE_J:                    immJ();   break;
+    case TYPE_SB: src1R(); src2R(); immSB();  break;
+    case TYPE_R:  src1R(); src2R();           break;
+
 
   }
 }
@@ -67,7 +70,6 @@ static int decode_exec(Decode *s) {
   decode_operand(s, &dest, &src1, &src2, &imm, concat(TYPE_, type)); \
   __VA_ARGS__ ; \
 }
-
   INSTPAT_START();
   //INSTPAT用来定义一条模式匹配规则
   //INSTPAT(模式字符串, 指令名称, 指令类型, 指令执行操作);
@@ -77,35 +79,47 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 010 ????? 00000 11", lw     , I, R(dest) = Mr(src1 + imm, 4));
   //将rs1的值写入存储器
   INSTPAT("??????? ????? ????? 011 ????? 01000 11", sd     , S, Mw(src1 + imm, 8, src2));
+  INSTPAT("??????? ????? ????? 010 ????? 01000 11", sw     , S, Mw(src1 + imm, 4, src2));
 
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
 
 
   // li和addi的区别: li的sr1相当于0,而r(0)恒为0
   INSTPAT("??????? ????? 00000 000 ????? 00100 11", li     , I, R(dest) = imm);
+  //相当于 addi rd,rs1,0
+  INSTPAT("0000000 00000 ????? 000 ????? 00100 11", mv     , I, R(dest) = src1);
+  // 加立即数
   INSTPAT("??????? ????? ????? 000 ????? 00100 11", addi   , I, R(dest) = src1 + imm);
+  // sext.w相当于addiw rd,rs1,0
+  INSTPAT("0000000 00000 ????? 000 ????? 00110 11", sext.w , I, R(dest) = SEXT(BITS(src1,31,0),32));
   // addiw与addi的区别,addiw将结果阶段为32位
-  INSTPAT("??????? ????? ????? 000 ????? 00110 11", addiw  , I, R(dest) = BITS(src1 + imm,31,0));
-  INSTPAT("0000000 ????? ????? 000 ????? 01110 11", addw   , S, R(dest) = BITS(src1 + src2,31,0));
+  INSTPAT("??????? ????? ????? 000 ????? 00110 11", addiw  , I, R(dest) = SEXT(BITS(src1 + imm,31,0),32));
+  INSTPAT("0000000 ????? ????? 000 ????? 01110 11", addw   , R, R(dest) = (BITS(src1 + src2,30,0) | (BITS(src1+src2,63,63) << 31)));
 
   INSTPAT("0100000 ????? ????? 000 ????? 01100 11", sub    , S, R(dest) = src1 - src2);
-  //相当于sltiu rd,rs1,1,小于1则置1,否则为0
+  //相当于sltiu rd,rs1,1, 功能:小于1则置1,否则为0
   INSTPAT("0000000 00001 ????? 011 ????? 00100 11", seqz   , I, R(dest) = (src1 < 1));
+  // 乘法
+  INSTPAT("0000001 ????? ????? 000 ????? 01110 11", mulw   , R, R(dest) = SEXT(BITS(src1 * src2,31,0),32));
+  
 
 
   /*******跳转指令********/
   /*无条件跳转*/
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, R(dest) = s->pc + 4; s->dnpc = s->pc + imm); //跳转指令就要区分dnpc和snpc
-  //ret 指令，相当于jalr x0,0(x1)
+  //ret 指令，相当于jalr x0,0(x1);
+  //使用方法: 将调用函数时的(pc地址+4)存到src1,在函数调用结束后，使得pc = src1 
   INSTPAT("??????? ????? ????? 000 ????? 11001 11", ret    , I, s->dnpc = src1); 
 
   /*条件分支,满足时pc加上偏移量，注意偏移量要乘2*/
   //不相等时分支
   INSTPAT("??????? ????? ????? 001 ????? 11000 11", bne    , SB, if(src1 != src2) s->dnpc = s->pc +imm); 
   //等于0时分支
-  INSTPAT("??????? ????? 00000 000 ????? 11000 11", beqz   , SB, if(src1 == 0) s->dnpc = s->pc +imm); 
+  INSTPAT("??????? 00000 ????? 000 ????? 11000 11", beqz   , SB, if(src1 == 0) s->dnpc = s->pc +imm); 
   //相等时分支
   INSTPAT("??????? ????? ????? 000 ????? 11000 11", beq    , SB, if(src1 == src2) s->dnpc = s->pc +imm); 
+  // 大于等于时分支
+  INSTPAT("??????? ????? ????? 101 ????? 11000 11", bge    , SB, if(src1 >= src2) s->dnpc = s->pc +imm); 
 
   
   //非法指令
